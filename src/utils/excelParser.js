@@ -23,7 +23,12 @@ export function parseExcelFile(file) {
           totalRows: jsonData.length,
         });
       } catch (err) {
-        reject(new Error('엑셀 파일 파싱 중 오류가 발생했습니다: ' + err.message));
+        const msg = err.message || '';
+        if (msg.includes('password') || msg.includes('encrypt') || msg.includes('cfb')) {
+          reject(new Error('암호가 설정된 엑셀 파일입니다. 엑셀에서 암호를 해제한 후 다시 업로드해주세요.'));
+        } else {
+          reject(new Error('엑셀 파일 파싱 중 오류가 발생했습니다: ' + msg));
+        }
       }
     };
     reader.onerror = () => reject(new Error('파일을 읽을 수 없습니다.'));
