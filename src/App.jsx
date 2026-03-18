@@ -68,8 +68,8 @@ function App() {
         maxWidth: '1200px',
         marginLeft: 'auto',
         marginRight: 'auto',
-        paddingLeft: '32px',
-        paddingRight: '32px',
+        paddingLeft: window.innerWidth < 768 ? '16px' : '32px',
+        paddingRight: window.innerWidth < 768 ? '16px' : '32px',
         position: 'relative',
         zIndex: 1,
       }}>

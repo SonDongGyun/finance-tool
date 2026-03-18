@@ -71,7 +71,7 @@ export default function FileUpload({ onFileLoaded, isLoaded }) {
         }
         style={{
           borderRadius: '20px',
-          padding: '56px 40px',
+          padding: window.innerWidth < 768 ? '36px 20px' : '56px 40px',
           textAlign: 'center',
           cursor: 'pointer',
           transition: 'all 0.5s ease-out',
@@ -156,14 +156,14 @@ export default function FileUpload({ onFileLoaded, isLoaded }) {
                 animate={{ y: [0, -8, 0] }}
                 transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
               >
-                <Upload style={{ width: '56px', height: '56px', color: '#60a5fa' }} />
+                <Upload style={{ width: window.innerWidth < 768 ? '44px' : '56px', height: window.innerWidth < 768 ? '44px' : '56px', color: '#60a5fa' }} />
               </motion.div>
               <div>
-                <p style={{ fontSize: '20px', fontWeight: 600, color: '#e2e8f0' }}>
+                <p style={{ fontSize: window.innerWidth < 768 ? '16px' : '20px', fontWeight: 600, color: '#e2e8f0' }}>
                   재무 데이터 엑셀 파일을 업로드하세요
                 </p>
-                <p style={{ fontSize: '15px', color: '#94a3b8', marginTop: '12px' }}>
-                  드래그 앤 드롭 또는 클릭하여 파일 선택 (.xlsx, .xls, .csv)
+                <p style={{ fontSize: window.innerWidth < 768 ? '13px' : '15px', color: '#94a3b8', marginTop: '12px' }}>
+                  {window.innerWidth < 768 ? '클릭하여 파일 선택 (.xlsx, .xls, .csv)' : '드래그 앤 드롭 또는 클릭하여 파일 선택 (.xlsx, .xls, .csv)'}
                 </p>
               </div>
             </motion.div>

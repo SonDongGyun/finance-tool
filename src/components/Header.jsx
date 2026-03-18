@@ -1,7 +1,14 @@
 import { motion } from 'framer-motion';
 import { BarChart3, Sparkles, TrendingUp, FileSpreadsheet, Zap } from 'lucide-react';
 
+function useIsMobile() {
+  if (typeof window === 'undefined') return false;
+  return window.innerWidth < 768;
+}
+
 export default function Header({ isCompact }) {
+  const mobile = useIsMobile();
+
   if (isCompact) {
     return (
       <motion.header
@@ -22,14 +29,16 @@ export default function Header({ isCompact }) {
             >
               <BarChart3 style={{ width: '20px', height: '20px', color: 'white' }} />
             </div>
-            <h1 style={{ fontSize: '20px', fontWeight: 700 }}>
+            <h1 style={{ fontSize: mobile ? '16px' : '20px', fontWeight: 700 }}>
               <span className="gradient-text">다비치 재무팀 분석 툴</span>
             </h1>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', color: '#94a3b8' }}>
-            <Sparkles style={{ width: '16px', height: '16px', color: '#a78bfa' }} />
-            <span>월별 비용 증감 분석</span>
-          </div>
+          {!mobile && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', color: '#94a3b8' }}>
+              <Sparkles style={{ width: '16px', height: '16px', color: '#a78bfa' }} />
+              <span>월별 비용 증감 분석</span>
+            </div>
+          )}
         </div>
       </motion.header>
     );
@@ -64,27 +73,32 @@ export default function Header({ isCompact }) {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 1 }}
-      style={{ position: 'relative', zIndex: 10, paddingTop: '80px', paddingBottom: '20px' }}
+      style={{ position: 'relative', zIndex: 10, paddingTop: mobile ? '40px' : '80px', paddingBottom: '20px' }}
     >
       {/* Hero Title */}
-      <div style={{ textAlign: 'center', marginBottom: '80px' }}>
+      <div style={{ textAlign: 'center', marginBottom: mobile ? '40px' : '80px' }}>
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2, duration: 0.6 }}
-          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '16px', marginBottom: '24px' }}
+          style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            gap: mobile ? '12px' : '16px', marginBottom: '24px',
+            flexWrap: 'wrap',
+          }}
         >
           <div
             style={{
-              width: '52px', height: '52px', borderRadius: '16px',
+              width: mobile ? '44px' : '52px', height: mobile ? '44px' : '52px', borderRadius: '16px',
               background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               boxShadow: '0 8px 24px rgba(59,130,246,0.3)',
+              flexShrink: 0,
             }}
           >
-            <BarChart3 style={{ width: '28px', height: '28px', color: 'white' }} />
+            <BarChart3 style={{ width: mobile ? '24px' : '28px', height: mobile ? '24px' : '28px', color: 'white' }} />
           </div>
-          <h1 style={{ fontSize: '40px', fontWeight: 800, lineHeight: 1.1 }}>
+          <h1 style={{ fontSize: mobile ? '26px' : '40px', fontWeight: 800, lineHeight: 1.1 }}>
             <span className="gradient-text">다비치 재무팀 분석 툴</span>
           </h1>
         </motion.div>
@@ -94,8 +108,9 @@ export default function Header({ isCompact }) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4, duration: 0.6 }}
           style={{
-            fontSize: '18px', color: '#94a3b8', lineHeight: 1.8,
+            fontSize: mobile ? '15px' : '18px', color: '#94a3b8', lineHeight: 1.8,
             maxWidth: '600px', margin: '0 auto',
+            padding: mobile ? '0 8px' : 0,
           }}
         >
           월별 재무 데이터를 업로드하면 비용 증감을 자동으로 분석하고,
@@ -117,9 +132,9 @@ export default function Header({ isCompact }) {
       {/* Feature Cards */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(3, 1fr)',
-        gap: '24px',
-        marginBottom: '64px',
+        gridTemplateColumns: mobile ? '1fr' : 'repeat(3, 1fr)',
+        gap: mobile ? '16px' : '24px',
+        marginBottom: mobile ? '32px' : '64px',
       }}>
         {features.map((f, i) => (
           <motion.div
@@ -127,28 +142,29 @@ export default function Header({ isCompact }) {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.6 + i * 0.15, duration: 0.5 }}
-            whileHover={{ y: -6, transition: { duration: 0.2 } }}
+            whileHover={mobile ? {} : { y: -6, transition: { duration: 0.2 } }}
             className="glass"
             style={{
-              borderRadius: '20px', padding: '32px 24px',
+              borderRadius: '20px',
+              padding: mobile ? '24px 20px' : '32px 24px',
               textAlign: 'center',
             }}
           >
             <div
               style={{
-                width: '56px', height: '56px', borderRadius: '16px',
+                width: mobile ? '48px' : '56px', height: mobile ? '48px' : '56px', borderRadius: '16px',
                 background: f.gradient,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                color: 'white', margin: '0 auto 20px auto',
+                color: 'white', margin: '0 auto 16px auto',
                 boxShadow: f.shadow,
               }}
             >
               {f.icon}
             </div>
-            <h3 style={{ fontSize: '17px', fontWeight: 600, color: '#e2e8f0', marginBottom: '10px' }}>
+            <h3 style={{ fontSize: mobile ? '15px' : '17px', fontWeight: 600, color: '#e2e8f0', marginBottom: '8px' }}>
               {f.title}
             </h3>
-            <p style={{ fontSize: '14px', color: '#94a3b8', lineHeight: 1.7 }}>
+            <p style={{ fontSize: mobile ? '13px' : '14px', color: '#94a3b8', lineHeight: 1.7 }}>
               {f.desc}
             </p>
           </motion.div>
