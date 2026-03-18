@@ -9,6 +9,7 @@ import AnalysisSummary from './components/AnalysisSummary';
 import AnalysisCharts from './components/AnalysisCharts';
 import DetailTable from './components/DetailTable';
 import VendorTable from './components/VendorTable';
+import ExportButtons from './components/ExportButtons';
 import { parseExcelFile, extractMonths, analyzeMonthlyChanges } from './utils/excelParser';
 import './App.css';
 
@@ -177,6 +178,7 @@ function App() {
                   </motion.button>
                 </div>
 
+                <ExportButtons result={analysisResult} />
                 <SummaryCards result={analysisResult} />
                 <AnalysisSummary result={analysisResult} />
                 <AnalysisCharts result={analysisResult} />
