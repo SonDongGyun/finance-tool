@@ -12,10 +12,13 @@ import VendorTable from './components/VendorTable';
 import ExportButtons from './components/ExportButtons';
 import PasswordModal from './components/PasswordModal';
 import { parseExcelFile, decryptAndParse, extractMonths, analyzeMonthlyChanges } from './utils/excelParser';
+import { useWindowSize } from './hooks/useWindowSize';
+import { STEP_UPLOAD, STEP_MAPPING, STEP_SELECT, STEP_RESULT } from './constants/steps';
 import './App.css';
 
 function App() {
-  const [step, setStep] = useState('upload'); // upload, mapping, select, result
+  const { isMobile } = useWindowSize();
+  const [step, setStep] = useState(STEP_UPLOAD); // upload, mapping, select, result
   const [fileData, setFileData] = useState(null);
   const [columnConfig, setColumnConfig] = useState(null);
   const [months, setMonths] = useState([]);
@@ -31,7 +34,7 @@ function App() {
 
   const handleFileSuccess = useCallback((parsed) => {
     setFileData(parsed);
-    setStep('mapping');
+    setStep(STEP_MAPPING);
     setAnalysisResult(null);
     setShowPasswordModal(false);
     setPendingFile(null);
@@ -83,7 +86,7 @@ function App() {
       setMonth2(monthList[monthList.length - 1]);
     }
 
-    setStep('select');
+    setStep(STEP_SELECT);
   }, [fileData]);
 
   const handleAnalyze = useCallback(() => {
@@ -96,11 +99,11 @@ function App() {
     });
 
     setAnalysisResult(result);
-    setStep('result');
+    setStep(STEP_RESULT);
   }, [fileData, columnConfig, month1, month2]);
 
   const handleReset = useCallback(() => {
-    setStep('select');
+    setStep(STEP_SELECT);
     setAnalysisResult(null);
   }, []);
 
@@ -113,12 +116,12 @@ function App() {
         maxWidth: '1200px',
         marginLeft: 'auto',
         marginRight: 'auto',
-        paddingLeft: window.innerWidth < 768 ? '16px' : '32px',
-        paddingRight: window.innerWidth < 768 ? '16px' : '32px',
+        paddingLeft: isMobile ? '16px' : '32px',
+        paddingRight: isMobile ? '16px' : '32px',
         position: 'relative',
         zIndex: 1,
       }}>
-        <Header isCompact={step !== 'upload'} />
+        <Header isCompact={step !== STEP_UPLOAD} />
 
         <main style={{ width: '100%', paddingBottom: '64px' }}>
           <FileUpload
@@ -127,7 +130,7 @@ function App() {
           />
 
           <AnimatePresence mode="wait">
-            {step === 'mapping' && fileData && (
+            {step === STEP_MAPPING && fileData && (
               <motion.div
                 key="mapping"
                 initial={{ opacity: 0 }}
@@ -181,7 +184,7 @@ function App() {
               </motion.div>
             )}
 
-            {step === 'select' && (
+            {step === STEP_SELECT && (
               <motion.div
                 key="select"
                 initial={{ opacity: 0 }}
@@ -199,7 +202,7 @@ function App() {
               </motion.div>
             )}
 
-            {step === 'result' && analysisResult && (
+            {step === STEP_RESULT && analysisResult && (
               <motion.div
                 key="result"
                 initial={{ opacity: 0 }}

@@ -5,25 +5,37 @@ import { formatMoney, formatMonthLabel } from './excelParser';
 const STATUS_KR = { new: '신규', removed: '제거', increased: '증가', decreased: '감소', unchanged: '동일' };
 const FONT_NAME = 'NanumGothic';
 
+let fontLoadFailed = false;
+
 async function loadKoreanFont(doc) {
-  const fontUrl = import.meta.env.BASE_URL + 'fonts/NanumGothic-Regular.ttf';
-  const res = await fetch(fontUrl);
-  if (!res.ok) throw new Error('Font load failed');
-  const buf = await res.arrayBuffer();
-  const bytes = new Uint8Array(buf);
-  let binary = '';
-  const chunkSize = 8192;
-  for (let i = 0; i < bytes.length; i += chunkSize) {
-    const chunk = bytes.subarray(i, i + chunkSize);
-    binary += String.fromCharCode.apply(null, chunk);
+  fontLoadFailed = false;
+  try {
+    const fontUrl = import.meta.env.BASE_URL + 'fonts/NanumGothic-Regular.ttf';
+    const res = await fetch(fontUrl);
+    if (!res.ok) throw new Error('Font load failed');
+    const buf = await res.arrayBuffer();
+    const bytes = new Uint8Array(buf);
+    let binary = '';
+    const chunkSize = 8192;
+    for (let i = 0; i < bytes.length; i += chunkSize) {
+      const chunk = bytes.subarray(i, i + chunkSize);
+      binary += String.fromCharCode.apply(null, chunk);
+    }
+    const base64 = btoa(binary);
+    doc.addFileToVFS('NanumGothic.ttf', base64);
+    doc.addFont('NanumGothic.ttf', FONT_NAME, 'normal');
+  } catch (err) {
+    fontLoadFailed = true;
+    console.warn('Korean font loading failed, falling back to Helvetica:', err.message);
   }
-  const base64 = btoa(binary);
-  doc.addFileToVFS('NanumGothic.ttf', base64);
-  doc.addFont('NanumGothic.ttf', FONT_NAME, 'normal');
 }
 
 function setFont(doc) {
-  doc.setFont(FONT_NAME, 'normal');
+  if (fontLoadFailed) {
+    doc.setFont('Helvetica', 'normal');
+  } else {
+    doc.setFont(FONT_NAME, 'normal');
+  }
 }
 
 function addPageFooter(doc, pageNum, totalPages, m1, m2) {

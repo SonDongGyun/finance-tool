@@ -1,13 +1,9 @@
 import { motion } from 'framer-motion';
 import { BarChart3, Sparkles, TrendingUp, FileSpreadsheet, Zap } from 'lucide-react';
-
-function useIsMobile() {
-  if (typeof window === 'undefined') return false;
-  return window.innerWidth < 768;
-}
+import { useWindowSize } from '../hooks/useWindowSize';
 
 export default function Header({ isCompact }) {
-  const mobile = useIsMobile();
+  const { isMobile: mobile } = useWindowSize();
 
   if (isCompact) {
     return (

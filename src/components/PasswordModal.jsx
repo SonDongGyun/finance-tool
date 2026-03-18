@@ -1,13 +1,24 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Lock, Loader2, X } from 'lucide-react';
 
 export default function PasswordModal({ isOpen, onSubmit, onClose, error, isLoading }) {
   const [password, setPassword] = useState('');
+  const submittingRef = useRef(false);
+
+  useEffect(() => {
+    if (!isLoading) {
+      submittingRef.current = false;
+    }
+  }, [isLoading]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (password.trim()) onSubmit(password);
+    if (submittingRef.current) return;
+    if (password.trim()) {
+      submittingRef.current = true;
+      onSubmit(password);
+    }
   };
 
   if (!isOpen) return null;
