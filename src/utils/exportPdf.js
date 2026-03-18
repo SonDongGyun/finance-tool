@@ -106,47 +106,100 @@ export async function exportPdf(result) {
     doc.text(t, 20, y + 12 + i * 7);
   });
 
-  // 핵심 인사이트
-  y = 128;
-  const insightLines = [];
+  // 핵심 인사이트 - 별도 페이지
+  newPage(doc);
+  y = 18;
+  y = addSectionTitle(doc, '핵심 인사이트', y, [180, 120, 0]);
+
+  const maxTextW = pw - 48;
+  const lineH = 5.5;
+
+  const insightItems = [];
 
   if (result.totalDiff > 0) {
-    insightLines.push(`전월 대비 총 비용이 ${formatMoney(result.totalDiff)}원 증가하였습니다.`);
+    insightItems.push(`전월 대비 총 비용이 ${formatMoney(result.totalDiff)}원 증가하였습니다 (${diffSign}${result.totalPctChange}%).`);
   } else if (result.totalDiff < 0) {
-    insightLines.push(`전월 대비 총 비용이 ${formatMoney(Math.abs(result.totalDiff))}원 감소하였습니다.`);
+    insightItems.push(`전월 대비 총 비용이 ${formatMoney(Math.abs(result.totalDiff))}원 감소하였습니다 (${result.totalPctChange}%).`);
   }
   if (result.newItems.length > 0) {
-    insightLines.push(`신규 발생 항목: ${result.newItems.map(i => `${i.category}(${formatMoney(i.currAmount)}원)`).join(', ')}`);
+    result.newItems.forEach(i => {
+      insightItems.push(`[신규] ${i.category}: ${m2}에 신규 발생, ${formatMoney(i.currAmount)}원 지출.`);
+    });
   }
   if (result.removedItems.length > 0) {
-    insightLines.push(`소멸 항목: ${result.removedItems.map(i => `${i.category}(${formatMoney(i.prevAmount)}원)`).join(', ')}`);
+    result.removedItems.forEach(i => {
+      insightItems.push(`[소멸] ${i.category}: ${m1}에 ${formatMoney(i.prevAmount)}원이었으나 ${m2}에 발생하지 않음.`);
+    });
   }
-  // 상세 항목 증감 Top 3
-  const topInc = result.increasedItems.sort((a, b) => Math.abs(b.diff) - Math.abs(a.diff)).slice(0, 3);
-  if (topInc.length > 0) {
-    insightLines.push(`주요 증가: ${topInc.map(i => `${i.category}(+${formatMoney(i.diff)}원)`).join(', ')}`);
+  // 상세 항목 증감
+  result.increasedItems.sort((a, b) => Math.abs(b.diff) - Math.abs(a.diff)).slice(0, 5).forEach(i => {
+    insightItems.push(`[증가] ${i.category}: ${formatMoney(i.prevAmount)}원 → ${formatMoney(i.currAmount)}원 (+${formatMoney(i.diff)}원, +${i.pctChange}%)`);
+  });
+  result.decreasedItems.sort((a, b) => Math.abs(b.diff) - Math.abs(a.diff)).slice(0, 5).forEach(i => {
+    insightItems.push(`[감소] ${i.category}: ${formatMoney(i.prevAmount)}원 → ${formatMoney(i.currAmount)}원 (-${formatMoney(Math.abs(i.diff))}원, ${i.pctChange}%)`);
+  });
+  // 거래처별 증감
+  const topVendors = result.vendorComparison.slice(0, 5);
+  if (topVendors.length > 0) {
+    insightItems.push('');
+    insightItems.push('[ 거래처별 주요 변동 ]');
+    topVendors.forEach(v => {
+      if (v.status === 'new') {
+        insightItems.push(`[거래처 신규] ${v.vendor}: ${formatMoney(v.currAmount)}원 신규 거래 발생.`);
+      } else if (v.status === 'removed') {
+        insightItems.push(`[거래처 소멸] ${v.vendor}: 전월 ${formatMoney(v.prevAmount)}원, 당월 거래 없음.`);
+      } else {
+        const sign = v.diff > 0 ? '+' : '';
+        insightItems.push(`[거래처 ${v.diff > 0 ? '증가' : '감소'}] ${v.vendor}: ${sign}${formatMoney(v.diff)}원 변동.`);
+      }
+    });
   }
-  const topDec = result.decreasedItems.sort((a, b) => Math.abs(b.diff) - Math.abs(a.diff)).slice(0, 3);
-  if (topDec.length > 0) {
-    insightLines.push(`주요 감소: ${topDec.map(i => `${i.category}(-${formatMoney(Math.abs(i.diff))}원)`).join(', ')}`);
-  }
-
-  const insightBoxH = 8 + insightLines.length * 6;
-  doc.setFillColor(255, 251, 235);
-  doc.roundedRect(14, y - 4, pw - 28, insightBoxH, 3, 3, 'F');
-  doc.setDrawColor(245, 158, 11);
-  doc.setLineWidth(0.5);
-  doc.roundedRect(14, y - 4, pw - 28, insightBoxH, 3, 3, 'S');
 
   setFont(doc);
-  doc.setFontSize(10);
-  doc.setTextColor(120, 80, 0);
-  doc.text('핵심 인사이트', 20, y + 3);
-
   doc.setFontSize(9);
-  doc.setTextColor(80, 60, 0);
-  insightLines.forEach((line, i) => {
-    doc.text(line, 20, y + 11 + i * 6);
+  doc.setTextColor(50);
+
+  insightItems.forEach((item) => {
+    if (y > ph - 20) {
+      newPage(doc);
+      y = 18;
+      y = addSectionTitle(doc, '핵심 인사이트 (계속)', y, [180, 120, 0]);
+      doc.setFontSize(9);
+    }
+
+    if (item === '') {
+      y += 3;
+      return;
+    }
+
+    // 줄바꿈 처리
+    setFont(doc);
+    const wrapped = doc.splitTextToSize(item, maxTextW);
+
+    // 컬러 도트
+    if (item.startsWith('[신규]') || item.startsWith('[거래처 신규]')) doc.setFillColor(59, 130, 246);
+    else if (item.startsWith('[소멸]') || item.startsWith('[거래처 소멸]')) doc.setFillColor(234, 88, 12);
+    else if (item.startsWith('[증가]') || item.startsWith('[거래처 증가]')) doc.setFillColor(220, 38, 38);
+    else if (item.startsWith('[감소]') || item.startsWith('[거래처 감소]')) doc.setFillColor(5, 150, 105);
+    else if (item.startsWith('[')) doc.setFillColor(100, 116, 139);
+    else doc.setFillColor(30, 64, 175);
+
+    if (!item.startsWith('[') || item.startsWith('[ ')) {
+      // 섹션 제목 (거래처별 주요 변동 등)
+      setFont(doc);
+      doc.setTextColor(30, 41, 59);
+      doc.setFontSize(10);
+      doc.text(item, 20, y);
+      doc.setFontSize(9);
+      doc.setTextColor(50);
+      y += 7;
+    } else {
+      doc.circle(17, y - 0.8, 1.2, 'F');
+      setFont(doc);
+      doc.setTextColor(50);
+      doc.text(wrapped, 21, y);
+      y += wrapped.length * lineH + 1;
+    }
   });
 
   // ════════════════ PAGE 2: Analysis Detail ════════════════
