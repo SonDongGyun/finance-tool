@@ -4,99 +4,203 @@ import { formatMoney, formatMonthLabel } from './excelParser';
 
 const STATUS_KR = { new: '신규', removed: '제거', increased: '증가', decreased: '감소', unchanged: '동일' };
 
-export function exportPdf(result) {
+async function loadKoreanFont(doc) {
+  const fontUrl = 'https://fastly.jsdelivr.net/gh/niceplugin/NanumSquareRound/NanumSquareRoundR.ttf';
+  const res = await fetch(fontUrl);
+  const buf = await res.arrayBuffer();
+  const bytes = new Uint8Array(buf);
+  let binary = '';
+  for (let i = 0; i < bytes.length; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  const base64 = btoa(binary);
+  doc.addFileToVFS('NanumSquareRound.ttf', base64);
+  doc.addFont('NanumSquareRound.ttf', 'NanumSquare', 'normal');
+}
+
+function addPageFooter(doc, pageNum, totalPages, m1, m2) {
+  const pw = doc.internal.pageSize.getWidth();
+  const ph = doc.internal.pageSize.getHeight();
+  doc.setFont('NanumSquare');
+  doc.setFontSize(8);
+  doc.setTextColor(160);
+  doc.text(`다비치 재무팀 분석 보고서  |  ${m1} vs ${m2}`, 14, ph - 8);
+  doc.text(`${pageNum} / ${totalPages}`, pw - 14, ph - 8, { align: 'right' });
+  // Separator line
+  doc.setDrawColor(200);
+  doc.setLineWidth(0.3);
+  doc.line(14, ph - 12, pw - 14, ph - 12);
+}
+
+function addSectionTitle(doc, title, y, color = [30, 64, 175]) {
+  doc.setFont('NanumSquare');
+  // Accent bar
+  doc.setFillColor(...color);
+  doc.rect(14, y - 1, 4, 7, 'F');
+  doc.setFontSize(13);
+  doc.setTextColor(30, 41, 59);
+  doc.text(title, 21, y + 4);
+  return y + 12;
+}
+
+export async function exportPdf(result) {
   const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+  await loadKoreanFont(doc);
+  doc.setFont('NanumSquare');
+
   const m1 = formatMonthLabel(result.month1.label);
   const m2 = formatMonthLabel(result.month2.label);
-  const pageW = doc.internal.pageSize.getWidth();
-  let y = 18;
+  const pw = doc.internal.pageSize.getWidth();
+  const ph = doc.internal.pageSize.getHeight();
+  const today = new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' });
+  let totalPages = 0;
 
-  // ── Title ──
-  doc.setFontSize(18);
-  doc.setTextColor(30, 41, 59);
-  doc.text(`${m1} vs ${m2}  Monthly Cost Analysis`, pageW / 2, y, { align: 'center' });
-  y += 6;
+  // ════════════════ PAGE 1: Cover ════════════════
+  // Background accent
+  doc.setFillColor(30, 64, 175);
+  doc.rect(0, 0, pw, 55, 'F');
+
+  doc.setFontSize(28);
+  doc.setTextColor(255);
+  doc.text('월별 비용 증감 분석 보고서', pw / 2, 25, { align: 'center' });
+
+  doc.setFontSize(16);
+  doc.setTextColor(200, 210, 255);
+  doc.text(`${m1}  vs  ${m2}`, pw / 2, 38, { align: 'center' });
+
+  doc.setFontSize(10);
+  doc.setTextColor(170, 185, 255);
+  doc.text(`작성일: ${today}  |  다비치 재무팀`, pw / 2, 48, { align: 'center' });
+
+  // Summary box
+  let y = 70;
+  doc.setFillColor(245, 247, 250);
+  doc.roundedRect(14, y - 4, pw - 28, 50, 3, 3, 'F');
+
+  doc.setFontSize(11);
+  doc.setTextColor(100);
+  doc.text('요약 개요', 20, y + 3);
+
+  doc.setFontSize(10);
+  doc.setTextColor(60);
+  const diffSign = result.totalDiff >= 0 ? '+' : '';
+  const summaryText = [
+    `${m1} 총 비용: ${formatMoney(result.month1.total)}원 (${result.month1.count}건)`,
+    `${m2} 총 비용: ${formatMoney(result.month2.total)}원 (${result.month2.count}건)`,
+    `총 증감액: ${diffSign}${formatMoney(result.totalDiff)}원 (${diffSign}${result.totalPctChange}%)`,
+    '',
+    `신규 항목 ${result.newItems.length}건  |  제거 항목 ${result.removedItems.length}건  |  증가 항목 ${result.increasedItems.length}건  |  감소 항목 ${result.decreasedItems.length}건`,
+  ];
+  summaryText.forEach((t, i) => {
+    doc.text(t, 20, y + 12 + i * 7);
+  });
+
+  // Key insight
+  y = 130;
+  doc.setFillColor(255, 251, 235);
+  doc.roundedRect(14, y - 4, pw - 28, 30, 3, 3, 'F');
+  doc.setDrawColor(245, 158, 11);
+  doc.setLineWidth(0.5);
+  doc.roundedRect(14, y - 4, pw - 28, 30, 3, 3, 'S');
+
+  doc.setFontSize(10);
+  doc.setTextColor(120, 80, 0);
+  doc.text('핵심 인사이트', 20, y + 3);
+
   doc.setFontSize(9);
-  doc.setTextColor(120);
-  doc.text(`Generated: ${new Date().toLocaleDateString('ko-KR')}`, pageW / 2, y, { align: 'center' });
-  y += 10;
+  doc.setTextColor(80, 60, 0);
+  let insightY = y + 11;
 
-  // ── Summary Cards ──
-  const cardData = [
-    [m1, `${formatMoney(result.month1.total)} won`, `${result.month1.count} items`],
-    [m2, `${formatMoney(result.month2.total)} won`, `${result.month2.count} items`],
-    ['Diff', `${result.totalDiff >= 0 ? '+' : ''}${formatMoney(result.totalDiff)} won`, `${result.totalPctChange >= 0 ? '+' : ''}${result.totalPctChange}%`],
-  ];
+  if (result.totalDiff > 0) {
+    doc.text(`전월 대비 총 비용이 ${formatMoney(result.totalDiff)}원 증가하였습니다.`, 20, insightY);
+  } else if (result.totalDiff < 0) {
+    doc.text(`전월 대비 총 비용이 ${formatMoney(Math.abs(result.totalDiff))}원 감소하였습니다.`, 20, insightY);
+  }
+  insightY += 6;
 
-  const cardW = 80;
-  const cardGap = 10;
-  const startX = (pageW - (cardW * 3 + cardGap * 2)) / 2;
+  if (result.newItems.length > 0) {
+    const newNames = result.newItems.map(i => i.category).join(', ');
+    doc.text(`신규 발생 항목: ${newNames}`, 20, insightY);
+    insightY += 6;
+  }
+  if (result.removedItems.length > 0) {
+    const removedNames = result.removedItems.map(i => i.category).join(', ');
+    doc.text(`소멸 항목: ${removedNames}`, 20, insightY);
+  }
 
-  cardData.forEach((card, i) => {
-    const x = startX + i * (cardW + cardGap);
-    const bgColor = i === 0 ? [100, 116, 139] : i === 1 ? [59, 130, 246] : (result.totalDiff >= 0 ? [239, 68, 68] : [16, 185, 129]);
+  // ════════════════ PAGE 2: Analysis Detail ════════════════
+  doc.addPage();
+  y = 18;
+  y = addSectionTitle(doc, '분석 상세 요약', y);
 
-    doc.setFillColor(...bgColor);
-    doc.roundedRect(x, y, cardW, 22, 3, 3, 'F');
-    doc.setTextColor(255);
-    doc.setFontSize(9);
-    doc.text(card[0], x + cardW / 2, y + 7, { align: 'center' });
-    doc.setFontSize(13);
-    doc.text(card[1], x + cardW / 2, y + 14, { align: 'center' });
-    doc.setFontSize(8);
-    doc.text(card[2], x + cardW / 2, y + 19, { align: 'center' });
+  // Build analysis lines
+  const analysisLines = [];
+
+  if (result.totalDiff !== 0) {
+    const dir = result.totalDiff > 0 ? '증가' : '감소';
+    analysisLines.push(`[총괄] ${m1} 대비 ${m2} 총 비용이 ${formatMoney(Math.abs(result.totalDiff))}원 ${dir}하였습니다 (${diffSign}${result.totalPctChange}%).`);
+  }
+
+  result.removedItems.forEach(item => {
+    analysisLines.push(`[제거] ${item.category}: ${m1}에 ${formatMoney(item.prevAmount)}원이었으나 ${m2}에는 발생하지 않음.`);
+  });
+  result.newItems.forEach(item => {
+    analysisLines.push(`[신규] ${item.category}: ${m2}에 신규 발생, ${formatMoney(item.currAmount)}원 지출.`);
+  });
+  result.increasedItems.sort((a, b) => Math.abs(b.diff) - Math.abs(a.diff)).forEach(item => {
+    analysisLines.push(`[증가] ${item.category}: ${formatMoney(item.prevAmount)}원 → ${formatMoney(item.currAmount)}원 (+${formatMoney(item.diff)}원, +${item.pctChange}%)`);
+  });
+  result.decreasedItems.sort((a, b) => Math.abs(b.diff) - Math.abs(a.diff)).forEach(item => {
+    analysisLines.push(`[감소] ${item.category}: ${formatMoney(item.prevAmount)}원 → ${formatMoney(item.currAmount)}원 (-${formatMoney(Math.abs(item.diff))}원, ${item.pctChange}%)`);
   });
 
-  y += 30;
+  doc.setFontSize(9);
+  analysisLines.forEach((line, i) => {
+    if (y > ph - 20) {
+      doc.addPage();
+      y = 18;
+      y = addSectionTitle(doc, '분석 상세 요약 (계속)', y);
+      doc.setFontSize(9);
+    }
 
-  // ── Change Summary ──
-  const summaryRow = [
-    ['New', result.newItems.length],
-    ['Removed', result.removedItems.length],
-    ['Increased', result.increasedItems.length],
-    ['Decreased', result.decreasedItems.length],
-  ];
-  const sCardW = 55;
-  const sStartX = (pageW - (sCardW * 4 + 6 * 3)) / 2;
-  summaryRow.forEach((s, i) => {
-    const x = sStartX + i * (sCardW + 6);
-    doc.setFillColor(241, 245, 249);
-    doc.roundedRect(x, y, sCardW, 14, 2, 2, 'F');
-    doc.setTextColor(71, 85, 105);
-    doc.setFontSize(8);
-    doc.text(s[0], x + sCardW / 2, y + 5, { align: 'center' });
-    doc.setFontSize(14);
-    doc.setTextColor(30, 41, 59);
-    doc.text(String(s[1]), x + sCardW / 2, y + 12, { align: 'center' });
+    // Color dot
+    if (line.startsWith('[총괄]')) doc.setFillColor(30, 64, 175);
+    else if (line.startsWith('[제거]')) doc.setFillColor(234, 88, 12);
+    else if (line.startsWith('[신규]')) doc.setFillColor(59, 130, 246);
+    else if (line.startsWith('[증가]')) doc.setFillColor(220, 38, 38);
+    else if (line.startsWith('[감소]')) doc.setFillColor(5, 150, 105);
+
+    doc.circle(17, y - 0.8, 1.2, 'F');
+    doc.setTextColor(50);
+    doc.text(line, 21, y);
+    y += 6;
   });
 
-  y += 22;
-
-  // ── Category Detail Table ──
-  doc.setFontSize(12);
-  doc.setTextColor(30, 41, 59);
-  doc.text('Category Comparison', 14, y);
-  y += 2;
+  // ════════════════ PAGE: Category Table ════════════════
+  doc.addPage();
+  y = 18;
+  y = addSectionTitle(doc, '카테고리별 비교 테이블', y);
 
   autoTable(doc, {
     startY: y,
-    head: [['Category', m1, m2, 'Diff', '%', 'Status']],
+    head: [['카테고리', m1, m2, '증감액', '증감률', '상태']],
     body: result.categoryComparison.map(c => [
       c.category,
-      `${formatMoney(c.prevAmount)} won`,
-      `${formatMoney(c.currAmount)} won`,
-      `${c.diff >= 0 ? '+' : ''}${formatMoney(c.diff)} won`,
+      `${formatMoney(c.prevAmount)}원`,
+      `${formatMoney(c.currAmount)}원`,
+      `${c.diff >= 0 ? '+' : ''}${formatMoney(c.diff)}원`,
       `${c.pctChange >= 0 ? '+' : ''}${c.pctChange}%`,
       STATUS_KR[c.status] || c.status,
     ]),
-    styles: { fontSize: 8, cellPadding: 3 },
-    headStyles: { fillColor: [59, 130, 246], textColor: 255, fontStyle: 'bold', fontSize: 8 },
+    styles: { font: 'NanumSquare', fontSize: 8, cellPadding: 3.5 },
+    headStyles: { fillColor: [30, 64, 175], textColor: 255, fontStyle: 'bold', fontSize: 8.5 },
     columnStyles: {
-      1: { halign: 'right' },
-      2: { halign: 'right' },
-      3: { halign: 'right' },
-      4: { halign: 'right' },
-      5: { halign: 'center' },
+      0: { cellWidth: 55 },
+      1: { halign: 'right', cellWidth: 38 },
+      2: { halign: 'right', cellWidth: 38 },
+      3: { halign: 'right', cellWidth: 38 },
+      4: { halign: 'right', cellWidth: 22 },
+      5: { halign: 'center', cellWidth: 18 },
     },
     alternateRowStyles: { fillColor: [248, 250, 252] },
     didParseCell: (data) => {
@@ -107,38 +211,39 @@ export function exportPdf(result) {
       }
       if (data.section === 'body' && data.column.index === 5) {
         const status = result.categoryComparison[data.row.index]?.status;
-        if (status === 'new') data.cell.styles.textColor = [59, 130, 246];
-        else if (status === 'removed') data.cell.styles.textColor = [234, 88, 12];
+        if (status === 'new') { data.cell.styles.textColor = [59, 130, 246]; data.cell.styles.fontStyle = 'bold'; }
+        else if (status === 'removed') { data.cell.styles.textColor = [234, 88, 12]; data.cell.styles.fontStyle = 'bold'; }
         else if (status === 'increased') data.cell.styles.textColor = [220, 38, 38];
         else if (status === 'decreased') data.cell.styles.textColor = [5, 150, 105];
       }
     },
+    didDrawPage: () => {
+      doc.setFont('NanumSquare');
+    },
   });
 
-  // ── Vendor Table (new page) ──
+  // ════════════════ PAGE: Vendor Table ════════════════
   if (result.vendorComparison.length > 0) {
     doc.addPage();
-    doc.setFontSize(12);
-    doc.setTextColor(30, 41, 59);
-    doc.text('Vendor Changes', 14, 18);
+    y = 18;
+    y = addSectionTitle(doc, '거래처별 변동 내역', y, [6, 182, 212]);
 
     autoTable(doc, {
-      startY: 22,
-      head: [['Vendor', m1, m2, 'Diff', 'Status']],
+      startY: y,
+      head: [['거래처', m1, m2, '증감액']],
       body: result.vendorComparison.map(v => [
         v.vendor,
-        `${formatMoney(v.prevAmount)} won`,
-        `${formatMoney(v.currAmount)} won`,
-        `${v.diff >= 0 ? '+' : ''}${formatMoney(v.diff)} won`,
-        STATUS_KR[v.status] || v.status,
+        `${formatMoney(v.prevAmount)}원`,
+        `${formatMoney(v.currAmount)}원`,
+        `${v.diff >= 0 ? '+' : ''}${formatMoney(v.diff)}원`,
       ]),
-      styles: { fontSize: 8, cellPadding: 3 },
-      headStyles: { fillColor: [6, 182, 212], textColor: 255, fontStyle: 'bold', fontSize: 8 },
+      styles: { font: 'NanumSquare', fontSize: 8, cellPadding: 3.5 },
+      headStyles: { fillColor: [6, 182, 212], textColor: 255, fontStyle: 'bold', fontSize: 8.5 },
       columnStyles: {
-        1: { halign: 'right' },
-        2: { halign: 'right' },
-        3: { halign: 'right' },
-        4: { halign: 'center' },
+        0: { cellWidth: 70 },
+        1: { halign: 'right', cellWidth: 42 },
+        2: { halign: 'right', cellWidth: 42 },
+        3: { halign: 'right', cellWidth: 42 },
       },
       alternateRowStyles: { fillColor: [248, 250, 252] },
       didParseCell: (data) => {
@@ -148,8 +253,19 @@ export function exportPdf(result) {
           else if (val < 0) data.cell.styles.textColor = [5, 150, 105];
         }
       },
+      didDrawPage: () => {
+        doc.setFont('NanumSquare');
+      },
     });
   }
 
-  doc.save(`analysis_${result.month1.label}_vs_${result.month2.label}.pdf`);
+  // ════════════════ Add page numbers to all pages ════════════════
+  totalPages = doc.internal.getNumberOfPages();
+  for (let i = 1; i <= totalPages; i++) {
+    doc.setPage(i);
+    doc.setFont('NanumSquare');
+    addPageFooter(doc, i, totalPages, m1, m2);
+  }
+
+  doc.save(`분석보고서_${result.month1.label}_vs_${result.month2.label}.pdf`);
 }
