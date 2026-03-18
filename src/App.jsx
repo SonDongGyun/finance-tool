@@ -178,7 +178,7 @@ function App() {
                   </motion.button>
                 </div>
 
-                {/* <ExportButtons result={analysisResult} /> */}
+                <ExportButtons result={analysisResult} />
                 <SummaryCards result={analysisResult} />
                 <AnalysisSummary result={analysisResult} />
                 <AnalysisCharts result={analysisResult} />
