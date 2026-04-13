@@ -12,6 +12,14 @@ export async function decryptAndParse(file, password) {
     body: JSON.stringify({ file: base64, password }),
   });
 
+  const contentType = res.headers.get('Content-Type') || '';
+  if (!contentType.includes('application/json')) {
+    if (res.status === 413) {
+      throw new Error('파일 크기가 너무 큽니다. 더 작은 파일을 업로드해주세요.');
+    }
+    throw new Error(`서버 오류가 발생했습니다. (${res.status})`);
+  }
+
   const data = await res.json();
 
   if (!res.ok) {
