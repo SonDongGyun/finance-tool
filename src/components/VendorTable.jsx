@@ -15,6 +15,7 @@ const statusLabels = {
 
 export default function VendorTable({ result }) {
   const [visibleCount, setVisibleCount] = useState(DEFAULT_COUNT);
+  const [searchInput, setSearchInput] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [sortBy, setSortBy] = useState('category');
@@ -105,9 +106,12 @@ export default function VendorTable({ result }) {
             <Search style={{ width: '16px', height: '16px', position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#64748b' }} />
             <input
               type="text"
-              value={searchTerm}
-              onChange={(e) => { setSearchTerm(e.target.value); setVisibleCount(DEFAULT_COUNT); }}
-              placeholder="계정과목 / 거래처 검색..."
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') { setSearchTerm(searchInput); setVisibleCount(DEFAULT_COUNT); }
+              }}
+              placeholder="계정과목 / 거래처 검색 (Enter)"
               style={{
                 paddingLeft: '36px', paddingRight: '16px', paddingTop: '10px', paddingBottom: '10px',
                 borderRadius: '8px', background: 'rgba(15,23,42,0.6)',

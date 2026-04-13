@@ -77,6 +77,7 @@ function ExpandedRow({ item, result }) {
 
 export default function DetailTable({ result }) {
   const [filter, setFilter] = useState('all');
+  const [searchInput, setSearchInput] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedRow, setExpandedRow] = useState(null);
   const [sortBy, setSortBy] = useState('diff');
@@ -141,9 +142,10 @@ export default function DetailTable({ result }) {
             <Search style={{ width: '16px', height: '16px', position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#64748b' }} />
             <input
               type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="카테고리 검색..."
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') setSearchTerm(searchInput); }}
+              placeholder="카테고리 검색 (Enter)"
               style={{
                 paddingLeft: '36px', paddingRight: '16px', paddingTop: '10px', paddingBottom: '10px',
                 borderRadius: '8px', background: 'rgba(15,23,42,0.6)',
