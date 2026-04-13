@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageSquareText, TrendingUp, TrendingDown, PlusCircle, MinusCircle, AlertTriangle, ChevronDown, SlidersHorizontal } from 'lucide-react';
+import { MessageSquareText, PlusCircle, MinusCircle, AlertTriangle, ChevronDown, SlidersHorizontal } from 'lucide-react';
 import { formatMoney, formatMonthLabel } from '../utils/excelParser';
 
 function fmt(amount) {
   return formatMoney(Math.abs(amount));
 }
+
+const DEFAULT_SHOW_COUNT = 5;
 
 const THRESHOLD_OPTIONS = [
   { label: '전체', value: 0 },
@@ -14,6 +16,41 @@ const THRESHOLD_OPTIONS = [
   { label: '100만원 이상', value: 1000000 },
   { label: '500만원 이상', value: 5000000 },
 ];
+
+function ShowMoreButton({ total, visible, onClick }) {
+  if (total <= visible) return null;
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        width: '100%', padding: '8px', marginTop: '6px',
+        borderRadius: '8px', fontSize: '12px', fontWeight: 600,
+        background: 'rgba(100,116,139,0.1)', color: '#94a3b8',
+        border: '1px solid rgba(100,116,139,0.15)',
+        cursor: 'pointer',
+      }}
+    >
+      +{total - visible}건 더보기
+    </button>
+  );
+}
+
+function ShowLessButton({ onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        width: '100%', padding: '8px', marginTop: '6px',
+        borderRadius: '8px', fontSize: '12px', fontWeight: 600,
+        background: 'rgba(100,116,139,0.1)', color: '#94a3b8',
+        border: '1px solid rgba(100,116,139,0.15)',
+        cursor: 'pointer',
+      }}
+    >
+      접기
+    </button>
+  );
+}
 
 function KeyChangeItem({ item, type }) {
   const [expanded, setExpanded] = useState(false);
@@ -95,6 +132,27 @@ function KeyChangeItem({ item, type }) {
   );
 }
 
+function KeyChangeList({ items, type }) {
+  const [showAll, setShowAll] = useState(false);
+  const visible = showAll ? items : items.slice(0, DEFAULT_SHOW_COUNT);
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+      {visible.length > 0 ? visible.map(item => (
+        <KeyChangeItem key={item.category} item={item} type={type} />
+      )) : (
+        <p style={{ fontSize: '12px', color: '#64748b', textAlign: 'center', padding: '12px 0' }}>없음</p>
+      )}
+      {!showAll && (
+        <ShowMoreButton total={items.length} visible={visible.length} onClick={() => setShowAll(true)} />
+      )}
+      {showAll && items.length > DEFAULT_SHOW_COUNT && (
+        <ShowLessButton onClick={() => setShowAll(false)} />
+      )}
+    </div>
+  );
+}
+
 function generateSummaryLines(result) {
   const lines = [];
   const m1Label = formatMonthLabel(result.month1.label);
@@ -142,6 +200,7 @@ const dotColors = {
 
 export default function AnalysisSummary({ result }) {
   const [threshold, setThreshold] = useState(100000);
+  const [showAllLines, setShowAllLines] = useState(false);
   const lines = generateSummaryLines(result);
 
   const m1Label = formatMonthLabel(result.month1.label);
@@ -156,6 +215,8 @@ export default function AnalysisSummary({ result }) {
     .sort((a, b) => b.prevAmount - a.prevAmount);
 
   const hasKeyChanges = result.newItems.length > 0 || result.removedItems.length > 0;
+
+  const visibleLines = showAllLines ? lines : lines.slice(0, DEFAULT_SHOW_COUNT);
 
   return (
     <motion.div
@@ -226,13 +287,7 @@ export default function AnalysisSummary({ result }) {
                     </span>
                     <span style={{ fontSize: '11px', color: '#64748b' }}>({newItems.length}건)</span>
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    {newItems.length > 0 ? newItems.map(item => (
-                      <KeyChangeItem key={item.category} item={item} type="new" />
-                    )) : (
-                      <p style={{ fontSize: '12px', color: '#64748b', textAlign: 'center', padding: '12px 0' }}>없음</p>
-                    )}
-                  </div>
+                  <KeyChangeList items={newItems} type="new" />
                 </div>
 
                 {/* Removed items */}
@@ -248,22 +303,16 @@ export default function AnalysisSummary({ result }) {
                     </span>
                     <span style={{ fontSize: '11px', color: '#64748b' }}>({removedItems.length}건)</span>
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    {removedItems.length > 0 ? removedItems.map(item => (
-                      <KeyChangeItem key={item.category} item={item} type="removed" />
-                    )) : (
-                      <p style={{ fontSize: '12px', color: '#64748b', textAlign: 'center', padding: '12px 0' }}>없음</p>
-                    )}
-                  </div>
+                  <KeyChangeList items={removedItems} type="removed" />
                 </div>
               </div>
             )}
           </div>
         )}
 
-        {/* Existing summary lines */}
+        {/* Summary lines with show more/less */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-          {lines.map((line, i) => (
+          {visibleLines.map((line, i) => (
             <motion.div
               key={i}
               initial={{ opacity: 0, x: -10 }}
@@ -283,6 +332,28 @@ export default function AnalysisSummary({ result }) {
             </motion.div>
           ))}
         </div>
+
+        {/* Show more / less for summary lines */}
+        {lines.length > DEFAULT_SHOW_COUNT && (
+          <button
+            onClick={() => setShowAllLines(!showAllLines)}
+            style={{
+              width: '100%', padding: '10px', marginTop: '12px',
+              borderRadius: '8px', fontSize: '13px', fontWeight: 600,
+              background: 'rgba(100,116,139,0.08)', color: '#94a3b8',
+              border: '1px solid rgba(100,116,139,0.15)',
+              cursor: 'pointer', display: 'flex', alignItems: 'center',
+              justifyContent: 'center', gap: '6px',
+            }}
+          >
+            <ChevronDown style={{
+              width: '14px', height: '14px',
+              transform: showAllLines ? 'rotate(180deg)' : 'none',
+              transition: 'transform 0.2s',
+            }} />
+            {showAllLines ? '접기' : `+${lines.length - DEFAULT_SHOW_COUNT}건 더보기`}
+          </button>
+        )}
 
         {lines.length === 0 && !hasKeyChanges && (
           <p style={{ fontSize: '14px', color: '#64748b', textAlign: 'center', padding: '20px 0' }}>변동 사항이 없습니다.</p>
