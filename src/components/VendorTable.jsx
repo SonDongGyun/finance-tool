@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Building2, ChevronDown, Search } from 'lucide-react';
+import { Building2, ChevronDown, ChevronUp, Search } from 'lucide-react';
 import { formatMoney } from '../utils/excelParser';
 
 const DEFAULT_COUNT = 15;
@@ -17,6 +17,8 @@ export default function VendorTable({ result }) {
   const [visibleCount, setVisibleCount] = useState(DEFAULT_COUNT);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [sortBy, setSortBy] = useState('category');
+  const [sortDir, setSortDir] = useState('asc');
 
   if (result.vendorComparison.length === 0) return null;
 
@@ -34,6 +36,16 @@ export default function VendorTable({ result }) {
     filtered = filtered.filter(item => item.status === filterStatus);
   }
 
+  filtered = [...filtered].sort((a, b) => {
+    const mult = sortDir === 'asc' ? 1 : -1;
+    if (sortBy === 'category') return mult * a.category.localeCompare(b.category);
+    if (sortBy === 'vendor') return mult * a.vendor.localeCompare(b.vendor);
+    if (sortBy === 'prev') return mult * (a.prevAmount - b.prevAmount);
+    if (sortBy === 'curr') return mult * (a.currAmount - b.currAmount);
+    if (sortBy === 'diff') return mult * (Math.abs(a.diff) - Math.abs(b.diff));
+    return 0;
+  });
+
   const data = filtered.slice(0, visibleCount);
   const remaining = filtered.length - visibleCount;
   const maxDiff = filtered[0]?.diff ? Math.abs(filtered[0].diff) : 1;
@@ -46,12 +58,19 @@ export default function VendorTable({ result }) {
     { key: 'decreased', label: '감소' },
   ];
 
-  const thStyle = {
+  const handleSort = (col) => {
+    if (sortBy === col) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    else { setSortBy(col); setSortDir(col === 'diff' ? 'desc' : 'asc'); }
+  };
+
+  const thStyle = (clickable) => ({
     padding: '14px 16px',
     fontSize: '12px', fontWeight: 700, color: '#94a3b8',
     textTransform: 'uppercase', letterSpacing: '0.05em',
     whiteSpace: 'nowrap',
-  };
+    cursor: clickable ? 'pointer' : 'default',
+    userSelect: 'none',
+  });
 
   const tdStyle = {
     padding: '14px 16px', fontSize: '14px',
@@ -128,13 +147,30 @@ export default function VendorTable({ result }) {
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ borderBottom: '2px solid rgba(51,65,85,0.5)' }}>
-                <th style={{ ...thStyle, textAlign: 'left' }}>계정과목</th>
-                <th style={{ ...thStyle, textAlign: 'left' }}>거래처</th>
-                <th style={{ ...thStyle, textAlign: 'right' }}>이전</th>
-                <th style={{ ...thStyle, textAlign: 'right' }}>현재</th>
-                <th style={{ ...thStyle, textAlign: 'right' }}>증감</th>
-                <th style={{ ...thStyle, textAlign: 'center', width: '80px' }}>상태</th>
-                <th style={{ ...thStyle, textAlign: 'center', width: '100px' }}>변동</th>
+                {[
+                  { key: 'category', label: '계정과목', align: 'left' },
+                  { key: 'vendor', label: '거래처', align: 'left' },
+                  { key: 'prev', label: '이전', align: 'right' },
+                  { key: 'curr', label: '현재', align: 'right' },
+                  { key: 'diff', label: '증감', align: 'right' },
+                ].map(col => (
+                  <th
+                    key={col.key}
+                    onClick={() => handleSort(col.key)}
+                    style={{ ...thStyle(true), textAlign: col.align }}
+                  >
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                      {col.label}
+                      {sortBy === col.key && (
+                        sortDir === 'asc'
+                          ? <ChevronUp style={{ width: '14px', height: '14px', color: '#60a5fa' }} />
+                          : <ChevronDown style={{ width: '14px', height: '14px', color: '#60a5fa' }} />
+                      )}
+                    </span>
+                  </th>
+                ))}
+                <th style={{ ...thStyle(false), textAlign: 'center', width: '80px' }}>상태</th>
+                <th style={{ ...thStyle(false), textAlign: 'center', width: '100px' }}>변동</th>
               </tr>
             </thead>
             <tbody>

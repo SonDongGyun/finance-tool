@@ -131,7 +131,11 @@ export function analyzeMonthlyChanges(rows, config) {
       });
     }
   });
-  vendorComparison.sort((a, b) => Math.abs(b.diff) - Math.abs(a.diff));
+  vendorComparison.sort((a, b) => {
+    const catCmp = a.category.localeCompare(b.category);
+    if (catCmp !== 0) return catCmp;
+    return Math.abs(b.diff) - Math.abs(a.diff);
+  });
 
   // Summary stats
   const m1Total = m1Data.reduce((s, e) => s + e._amount, 0);
