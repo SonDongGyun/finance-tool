@@ -160,14 +160,15 @@ export function exportPptx(result) {
 
   // 거래처 변동
   result.vendorComparison.forEach(v => {
+    const cat = v.category && v.category !== '미분류' ? `[${v.category}] ` : '';
     if (v.status === 'new') {
-      lines.push({ color: CYAN, tag: '거래처+', text: `"${v.vendor}" 신규 거래 발생, ${formatMoney(v.currAmount)}원 지출.` });
+      lines.push({ color: CYAN, tag: '거래처+', text: `${cat}"${v.vendor}" 신규 거래 발생, ${formatMoney(v.currAmount)}원 지출.` });
     } else if (v.status === 'removed') {
-      lines.push({ color: ORANGE, tag: '거래처-', text: `"${v.vendor}" ${m2} 거래 없음 (전월 ${formatMoney(v.prevAmount)}원).` });
+      lines.push({ color: ORANGE, tag: '거래처-', text: `${cat}"${v.vendor}" ${m2} 거래 없음 (전월 ${formatMoney(v.prevAmount)}원).` });
     } else if (v.diff > 0) {
-      lines.push({ color: RED, tag: '거래처', text: `"${v.vendor}" +${formatMoney(v.diff)}원 증가.` });
+      lines.push({ color: RED, tag: '거래처', text: `${cat}"${v.vendor}" +${formatMoney(v.diff)}원 증가.` });
     } else if (v.diff < 0) {
-      lines.push({ color: GREEN, tag: '거래처', text: `"${v.vendor}" -${formatMoney(Math.abs(v.diff))}원 감소.` });
+      lines.push({ color: GREEN, tag: '거래처', text: `${cat}"${v.vendor}" -${formatMoney(Math.abs(v.diff))}원 감소.` });
     }
   });
 
@@ -250,6 +251,7 @@ export function exportPptx(result) {
   // ═══════════ 거래처별 변동 테이블 ═══════════
   if (result.vendorComparison.length > 0) {
     const vendorRows = result.vendorComparison.map(v => [
+      { text: v.category || '미분류', options: { fontSize: 9, color: '94A3B8', fontFace: FONT } },
       { text: v.vendor, options: { fontSize: 9, color: TEXT, fontFace: FONT } },
       { text: `${formatMoney(v.prevAmount)}원`, options: { fontSize: 9, color: 'CBD5E1', align: 'right', fontFace: FONT } },
       { text: `${formatMoney(v.currAmount)}원`, options: { fontSize: 9, color: 'CBD5E1', align: 'right', fontFace: FONT } },
@@ -269,6 +271,7 @@ export function exportPptx(result) {
       });
 
       const headerRow = [
+        { text: '계정과목', options: { fontSize: 9, bold: true, color: 'FFFFFF', fill: { color: CYAN }, fontFace: FONT } },
         { text: '거래처', options: { fontSize: 9, bold: true, color: 'FFFFFF', fill: { color: CYAN }, fontFace: FONT } },
         { text: m1, options: { fontSize: 9, bold: true, color: 'FFFFFF', fill: { color: CYAN }, align: 'right', fontFace: FONT } },
         { text: m2, options: { fontSize: 9, bold: true, color: 'FFFFFF', fill: { color: CYAN }, align: 'right', fontFace: FONT } },
@@ -284,7 +287,7 @@ export function exportPptx(result) {
 
       slide.addTable(tableRows, {
         x: 0.5, y: 1.0, w: 12.3,
-        colW: [4, 2.2, 2.2, 2.2, 1.7],
+        colW: [2.5, 3, 1.8, 1.8, 1.8, 1.4],
         border: { type: 'solid', pt: 0.5, color: BORDER },
         rowH: 0.33,
       });

@@ -156,13 +156,14 @@ export async function exportPdf(result) {
     insightItems.push('');
     insightItems.push('[ 거래처별 주요 변동 ]');
     topVendors.forEach(v => {
+      const cat = v.category && v.category !== '미분류' ? `(${v.category}) ` : '';
       if (v.status === 'new') {
-        insightItems.push(`[거래처 신규] ${v.vendor}: ${formatMoney(v.currAmount)}원 신규 거래 발생.`);
+        insightItems.push(`[거래처 신규] ${cat}${v.vendor}: ${formatMoney(v.currAmount)}원 신규 거래 발생.`);
       } else if (v.status === 'removed') {
-        insightItems.push(`[거래처 소멸] ${v.vendor}: 전월 ${formatMoney(v.prevAmount)}원, 당월 거래 없음.`);
+        insightItems.push(`[거래처 소멸] ${cat}${v.vendor}: 전월 ${formatMoney(v.prevAmount)}원, 당월 거래 없음.`);
       } else {
         const sign = v.diff > 0 ? '+' : '';
-        insightItems.push(`[거래처 ${v.diff > 0 ? '증가' : '감소'}] ${v.vendor}: ${sign}${formatMoney(v.diff)}원 변동.`);
+        insightItems.push(`[거래처 ${v.diff > 0 ? '증가' : '감소'}] ${cat}${v.vendor}: ${sign}${formatMoney(v.diff)}원 변동.`);
       }
     });
   }
@@ -315,8 +316,9 @@ export async function exportPdf(result) {
 
     autoTable(doc, {
       startY: y,
-      head: [['거래처', m1, m2, '증감액']],
+      head: [['계정과목', '거래처', m1, m2, '증감액']],
       body: result.vendorComparison.map(v => [
+        v.category || '미분류',
         v.vendor,
         `${formatMoney(v.prevAmount)}원`,
         `${formatMoney(v.currAmount)}원`,
@@ -325,15 +327,16 @@ export async function exportPdf(result) {
       styles: { font: FONT_NAME, fontSize: 8, cellPadding: 3.5 },
       headStyles: { fillColor: [6, 182, 212], textColor: 255, fontStyle: 'normal', fontSize: 8.5, font: FONT_NAME },
       columnStyles: {
-        0: { cellWidth: 70 },
-        1: { halign: 'right', cellWidth: 42 },
-        2: { halign: 'right', cellWidth: 42 },
-        3: { halign: 'right', cellWidth: 42 },
+        0: { cellWidth: 40 },
+        1: { cellWidth: 50 },
+        2: { halign: 'right', cellWidth: 36 },
+        3: { halign: 'right', cellWidth: 36 },
+        4: { halign: 'right', cellWidth: 36 },
       },
       alternateRowStyles: { fillColor: [248, 250, 252] },
       didParseCell: (data) => {
         data.cell.styles.font = FONT_NAME;
-        if (data.section === 'body' && data.column.index === 3) {
+        if (data.section === 'body' && data.column.index === 4) {
           const val = result.vendorComparison[data.row.index]?.diff;
           if (val > 0) data.cell.styles.textColor = [220, 38, 38];
           else if (val < 0) data.cell.styles.textColor = [5, 150, 105];

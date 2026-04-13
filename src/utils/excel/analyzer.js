@@ -84,30 +84,35 @@ export function analyzeMonthlyChanges(rows, config) {
 
   categoryComparison.sort((a, b) => Math.abs(b.diff) - Math.abs(a.diff));
 
-  // Vendor-level analysis
+  // Vendor-level analysis (grouped by category + vendor)
   const m1Vendors = {};
   const m2Vendors = {};
 
   m1Data.forEach(e => {
-    const key = e._vendor || e._description || '기타';
-    if (!m1Vendors[key]) m1Vendors[key] = { total: 0, count: 0 };
+    const vendor = e._vendor || e._description || '기타';
+    const category = e._category || '미분류';
+    const key = `${category}|||${vendor}`;
+    if (!m1Vendors[key]) m1Vendors[key] = { total: 0, count: 0, category, vendor };
     m1Vendors[key].total += e._amount;
     m1Vendors[key].count++;
   });
 
   m2Data.forEach(e => {
-    const key = e._vendor || e._description || '기타';
-    if (!m2Vendors[key]) m2Vendors[key] = { total: 0, count: 0 };
+    const vendor = e._vendor || e._description || '기타';
+    const category = e._category || '미분류';
+    const key = `${category}|||${vendor}`;
+    if (!m2Vendors[key]) m2Vendors[key] = { total: 0, count: 0, category, vendor };
     m2Vendors[key].total += e._amount;
     m2Vendors[key].count++;
   });
 
-  const allVendors = new Set([...Object.keys(m1Vendors), ...Object.keys(m2Vendors)]);
+  const allVendorKeys = new Set([...Object.keys(m1Vendors), ...Object.keys(m2Vendors)]);
   const vendorComparison = [];
-  allVendors.forEach(v => {
-    const prev = m1Vendors[v]?.total || 0;
-    const curr = m2Vendors[v]?.total || 0;
+  allVendorKeys.forEach(key => {
+    const prev = m1Vendors[key]?.total || 0;
+    const curr = m2Vendors[key]?.total || 0;
     const diff = curr - prev;
+    const info = m1Vendors[key] || m2Vendors[key];
 
     let status;
     if (prev === 0 && curr > 0) status = 'new';
@@ -116,7 +121,14 @@ export function analyzeMonthlyChanges(rows, config) {
     else status = 'unchanged';
 
     if (status !== 'unchanged') {
-      vendorComparison.push({ vendor: v, prevAmount: prev, currAmount: curr, diff, status });
+      vendorComparison.push({
+        vendor: info.vendor,
+        category: info.category,
+        prevAmount: prev,
+        currAmount: curr,
+        diff,
+        status,
+      });
     }
   });
   vendorComparison.sort((a, b) => Math.abs(b.diff) - Math.abs(a.diff));

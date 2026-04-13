@@ -161,14 +161,15 @@ function generateSummaryLines(result) {
   });
 
   result.vendorComparison.forEach(v => {
+    const catLabel = v.category && v.category !== '미분류' ? `[${v.category}] ` : '';
     if (v.status === 'new') {
-      lines.push({ type: 'new', text: `거래처 "${v.vendor}" 신규 거래 발생, ${fmt(v.currAmount)}원 지출.` });
+      lines.push({ type: 'new', text: `${catLabel}거래처 "${v.vendor}" 신규 거래 발생, ${fmt(v.currAmount)}원 지출.` });
     } else if (v.status === 'removed') {
-      lines.push({ type: 'removed', text: `거래처 "${v.vendor}" 당월 거래 없음 (전월 ${fmt(v.prevAmount)}원).` });
+      lines.push({ type: 'removed', text: `${catLabel}거래처 "${v.vendor}" 당월 거래 없음 (전월 ${fmt(v.prevAmount)}원).` });
     } else if (v.diff > 0) {
-      lines.push({ type: 'increase', text: `거래처 "${v.vendor}" 비용 ${fmt(v.diff)}원 증가.` });
+      lines.push({ type: 'increase', text: `${catLabel}거래처 "${v.vendor}" 비용 ${fmt(v.diff)}원 증가.` });
     } else if (v.diff < 0) {
-      lines.push({ type: 'decrease', text: `거래처 "${v.vendor}" 비용 ${fmt(Math.abs(v.diff))}원 감소.` });
+      lines.push({ type: 'decrease', text: `${catLabel}거래처 "${v.vendor}" 비용 ${fmt(Math.abs(v.diff))}원 감소.` });
     }
   });
 
