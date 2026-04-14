@@ -107,7 +107,7 @@ export default function AnalysisCharts({ result }) {
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.1)" />
                   <XAxis dataKey="name" tick={{ fill: '#94a3b8', fontSize: 12 }} angle={-30} textAnchor="end" height={60} />
                   <YAxis tick={{ fill: '#94a3b8', fontSize: 12 }} tickFormatter={(v) => v >= 1000000 ? `${(v / 1000000).toFixed(0)}M` : v >= 1000 ? `${(v / 1000).toFixed(0)}K` : v} />
-                  <Tooltip content={<CustomTooltip />} />
+                  <Tooltip content={<CustomTooltip />} cursor={false} />
                   <Bar dataKey={m1Label} fill="#6366f1" radius={[4, 4, 0, 0]} animationDuration={1000} />
                   <Bar dataKey={m2Label} fill="#06b6d4" radius={[4, 4, 0, 0]} animationDuration={1000} animationBegin={300} />
                 </BarChart>
