@@ -4,6 +4,24 @@ import { Building2, ChevronDown, ChevronUp, Search, X } from 'lucide-react';
 import { formatMoney, formatMonthLabel } from '../utils/excelParser';
 import CategoryTabs from './CategoryTabs';
 
+function smoothScrollTo(ref) {
+  const el = ref?.current;
+  if (!el) return;
+  const targetY = el.getBoundingClientRect().top + window.scrollY - 20;
+  const startY = window.scrollY;
+  const diff = targetY - startY;
+  const duration = 600;
+  let start = null;
+  function step(timestamp) {
+    if (!start) start = timestamp;
+    const t = Math.min((timestamp - start) / duration, 1);
+    const ease = 1 - Math.pow(1 - t, 3);
+    window.scrollTo(0, startY + diff * ease);
+    if (t < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
 const DEFAULT_COUNT = 15;
 const PAGE_SIZE = 10;
 
@@ -356,7 +374,7 @@ export default function VendorTable({ result }) {
               </button>
             )}
             {visibleCount > DEFAULT_COUNT && (
-              <button onClick={() => { setVisibleCount(DEFAULT_COUNT); sectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }} style={btnStyle}>
+              <button onClick={() => { setVisibleCount(DEFAULT_COUNT); smoothScrollTo(sectionRef); }} style={btnStyle}>
                 <ChevronDown style={{ width: '14px', height: '14px', transform: 'rotate(180deg)' }} />
                 접기
               </button>

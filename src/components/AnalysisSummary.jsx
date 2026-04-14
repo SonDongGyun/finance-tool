@@ -19,6 +19,24 @@ const THRESHOLD_OPTIONS = [
   { label: '500만원 이상', value: 5000000 },
 ];
 
+function smoothScrollTo(ref) {
+  const el = ref?.current;
+  if (!el) return;
+  const targetY = el.getBoundingClientRect().top + window.scrollY - 20;
+  const startY = window.scrollY;
+  const diff = targetY - startY;
+  const duration = 600;
+  let start = null;
+  function step(timestamp) {
+    if (!start) start = timestamp;
+    const t = Math.min((timestamp - start) / duration, 1);
+    const ease = 1 - Math.pow(1 - t, 3);
+    window.scrollTo(0, startY + diff * ease);
+    if (t < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
 const listBtnStyle = {
   padding: '8px 16px',
   borderRadius: '8px', fontSize: '12px', fontWeight: 600,
@@ -114,7 +132,7 @@ function KeyChangeList({ items, type, parentRef }) {
 
   const handleCollapse = () => {
     setVisibleCount(DEFAULT_SHOW_COUNT);
-    parentRef?.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    smoothScrollTo(parentRef);
   };
 
   return (
@@ -420,7 +438,7 @@ export default function AnalysisSummary({ result }) {
             )}
             {visibleLineCount > DEFAULT_SHOW_COUNT && (
               <button
-                onClick={() => { setVisibleLineCount(DEFAULT_SHOW_COUNT); sectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }}
+                onClick={() => { setVisibleLineCount(DEFAULT_SHOW_COUNT); smoothScrollTo(sectionRef); }}
                 style={{ ...listBtnStyle, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
               >
                 <ChevronDown style={{ width: '14px', height: '14px', transform: 'rotate(180deg)' }} />
