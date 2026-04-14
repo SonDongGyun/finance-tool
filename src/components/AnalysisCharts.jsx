@@ -41,7 +41,7 @@ function CustomPieTooltip({ active, payload }) {
     }}>
       <p style={{ fontWeight: 600, color: '#e2e8f0', fontSize: '13px' }}>{payload[0].name}</p>
       <p style={{ fontSize: '12px', color: '#cbd5e1' }}>{formatMoney(payload[0].value)}원</p>
-      <p style={{ fontSize: '12px', color: '#94a3b8' }}>{(payload[0].percent * 100).toFixed(1)}%</p>
+      <p style={{ fontSize: '12px', color: '#94a3b8' }}>{payload[0].percent != null ? (payload[0].percent * 100).toFixed(1) : 0}%</p>
     </div>
   );
 }
@@ -126,7 +126,7 @@ export default function AnalysisCharts({ result }) {
                 <ResponsiveContainer width="100%" height="90%">
                   <PieChart>
                     <Pie data={pieData1} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={120} innerRadius={60} animationDuration={1000}
-                      label={({ name, percent }) => percent > 0.05 ? `${name.substring(0, 6)} ${(percent * 100).toFixed(0)}%` : ''} labelLine={false}>
+                      label={({ name, percent }) => (percent || 0) > 0.05 ? `${name.substring(0, 6)} ${((percent || 0) * 100).toFixed(0)}%` : ''} labelLine={false}>
                       {pieData1.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                     </Pie>
                     <Tooltip content={<CustomPieTooltip />} />
@@ -138,7 +138,7 @@ export default function AnalysisCharts({ result }) {
                 <ResponsiveContainer width="100%" height="90%">
                   <PieChart>
                     <Pie data={pieData2} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={120} innerRadius={60} animationDuration={1000} animationBegin={500}
-                      label={({ name, percent }) => percent > 0.05 ? `${name.substring(0, 6)} ${(percent * 100).toFixed(0)}%` : ''} labelLine={false}>
+                      label={({ name, percent }) => (percent || 0) > 0.05 ? `${name.substring(0, 6)} ${((percent || 0) * 100).toFixed(0)}%` : ''} labelLine={false}>
                       {pieData2.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                     </Pie>
                     <Tooltip content={<CustomPieTooltip />} />
