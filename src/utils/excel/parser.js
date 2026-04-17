@@ -7,6 +7,8 @@ export function parseWorkbook(workbook) {
   }
 
   const allRows = [];
+  const rowsBySheet = {};
+  const nonEmptySheets = [];
   let headers = null;
 
   sheetNames.forEach(name => {
@@ -15,7 +17,10 @@ export function parseWorkbook(workbook) {
     const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
     if (rows.length === 0) return;
     if (!headers) headers = Object.keys(rows[0]);
-    rows.forEach(r => allRows.push({ ...r, _sheet: name }));
+    const tagged = rows.map(r => ({ ...r, _sheet: name }));
+    rowsBySheet[name] = tagged;
+    nonEmptySheets.push(name);
+    tagged.forEach(r => allRows.push(r));
   });
 
   if (allRows.length === 0) {
@@ -23,10 +28,11 @@ export function parseWorkbook(workbook) {
   }
 
   return {
-    sheetName: sheetNames.join(', '),
-    sheetNames,
+    sheetName: nonEmptySheets.join(', '),
+    sheetNames: nonEmptySheets,
     headers,
     rows: allRows,
+    rowsBySheet,
     totalRows: allRows.length,
   };
 }

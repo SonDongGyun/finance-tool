@@ -13,6 +13,45 @@ export function extractMonths(rows, dateColumn) {
   return Array.from(months).sort();
 }
 
+export function analyzeSheets(rowsBySheet, dateColumn) {
+  const sheets = [];
+  Object.entries(rowsBySheet).forEach(([name, rows]) => {
+    const yearCount = {};
+    const months = new Set();
+    rows.forEach(row => {
+      const d = parseDate(row[dateColumn]);
+      if (!d) return;
+      const y = d.getFullYear();
+      yearCount[y] = (yearCount[y] || 0) + 1;
+      months.add(`${y}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+    });
+
+    let dominantYear = null;
+    let maxCount = 0;
+    Object.entries(yearCount).forEach(([y, c]) => {
+      if (c > maxCount) {
+        maxCount = c;
+        dominantYear = Number(y);
+      }
+    });
+
+    sheets.push({
+      name,
+      year: dominantYear,
+      label: dominantYear ? `${dominantYear}년` : name,
+      months: Array.from(months).sort(),
+      rowCount: rows.length,
+    });
+  });
+
+  sheets.sort((a, b) => {
+    if (a.year && b.year) return a.year - b.year;
+    return a.name.localeCompare(b.name);
+  });
+
+  return sheets;
+}
+
 function resolveMonths(config, side) {
   const arr = config[`months${side}`];
   if (Array.isArray(arr) && arr.length > 0) return arr;
