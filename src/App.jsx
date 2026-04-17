@@ -11,7 +11,7 @@ import DetailTable from './components/DetailTable';
 import VendorTable from './components/VendorTable';
 import ExportButtons from './components/ExportButtons';
 import PasswordModal from './components/PasswordModal';
-import { parseExcelFile, decryptAndParse, extractMonths, analyzeMonthlyChanges } from './utils/excelParser';
+import { parseExcelFile, decryptAndParse, extractMonths, analyzeMonthlyChanges, expandMonthRange } from './utils/excelParser';
 import { useWindowSize } from './hooks/useWindowSize';
 import { STEP_UPLOAD, STEP_MAPPING, STEP_SELECT, STEP_RESULT } from './constants/steps';
 import './App.css';
@@ -22,8 +22,9 @@ function App() {
   const [fileData, setFileData] = useState(null);
   const [columnConfig, setColumnConfig] = useState(null);
   const [months, setMonths] = useState([]);
-  const [month1, setMonth1] = useState('');
-  const [month2, setMonth2] = useState('');
+  const [mode, setMode] = useState('single'); // 'single' | 'range'
+  const [range1, setRange1] = useState({ start: '', end: '' });
+  const [range2, setRange2] = useState({ start: '', end: '' });
   const [analysisResult, setAnalysisResult] = useState(null);
 
   // 암호 모달 상태
@@ -82,25 +83,30 @@ function App() {
     setMonths(monthList);
 
     if (monthList.length >= 2) {
-      setMonth1(monthList[monthList.length - 2]);
-      setMonth2(monthList[monthList.length - 1]);
+      const prev = monthList[monthList.length - 2];
+      const curr = monthList[monthList.length - 1];
+      setRange1({ start: prev, end: prev });
+      setRange2({ start: curr, end: curr });
     }
 
     setStep(STEP_SELECT);
   }, [fileData]);
 
   const handleAnalyze = useCallback(() => {
-    if (!month1 || !month2 || month1 === month2) return;
+    const months1 = expandMonthRange(range1.start, range1.end);
+    const months2 = expandMonthRange(range2.start, range2.end);
+    if (months1.length === 0 || months2.length === 0) return;
+    if (range1.start === range2.start && range1.end === range2.end) return;
 
     const result = analyzeMonthlyChanges(fileData.rows, {
       ...columnConfig,
-      month1,
-      month2,
+      months1,
+      months2,
     });
 
     setAnalysisResult(result);
     setStep(STEP_RESULT);
-  }, [fileData, columnConfig, month1, month2]);
+  }, [fileData, columnConfig, range1, range2]);
 
   const handleReset = useCallback(() => {
     setStep(STEP_SELECT);
@@ -193,10 +199,12 @@ function App() {
               >
                 <MonthSelector
                   months={months}
-                  month1={month1}
-                  month2={month2}
-                  onMonth1Change={setMonth1}
-                  onMonth2Change={setMonth2}
+                  mode={mode}
+                  onModeChange={setMode}
+                  range1={range1}
+                  range2={range2}
+                  onRange1Change={setRange1}
+                  onRange2Change={setRange2}
                   onAnalyze={handleAnalyze}
                 />
               </motion.div>

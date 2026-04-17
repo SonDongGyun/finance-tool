@@ -1,5 +1,36 @@
 import * as XLSX from 'xlsx';
 
+export function parseWorkbook(workbook) {
+  const sheetNames = workbook.SheetNames || [];
+  if (sheetNames.length === 0) {
+    throw new Error('엑셀 파일에 시트가 없습니다.');
+  }
+
+  const allRows = [];
+  let headers = null;
+
+  sheetNames.forEach(name => {
+    const ws = workbook.Sheets[name];
+    if (!ws) return;
+    const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+    if (rows.length === 0) return;
+    if (!headers) headers = Object.keys(rows[0]);
+    rows.forEach(r => allRows.push({ ...r, _sheet: name }));
+  });
+
+  if (allRows.length === 0) {
+    throw new Error('엑셀 파일에 데이터가 없습니다.');
+  }
+
+  return {
+    sheetName: sheetNames.join(', '),
+    sheetNames,
+    headers,
+    rows: allRows,
+    totalRows: allRows.length,
+  };
+}
+
 export function parseExcelFile(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -7,21 +38,7 @@ export function parseExcelFile(file) {
       try {
         const data = new Uint8Array(e.target.result);
         const workbook = XLSX.read(data, { type: 'array' });
-        const sheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[sheetName];
-        const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
-
-        if (jsonData.length === 0) {
-          reject(new Error('엑셀 파일에 데이터가 없습니다.'));
-          return;
-        }
-
-        resolve({
-          sheetName,
-          headers: Object.keys(jsonData[0]),
-          rows: jsonData,
-          totalRows: jsonData.length,
-        });
+        resolve(parseWorkbook(workbook));
       } catch (err) {
         const msg = err.message || '';
         if (msg.includes('password') || msg.includes('encrypt') || msg.includes('cfb') || msg.includes('Unsupported')) {

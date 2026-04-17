@@ -1,4 +1,5 @@
 import * as XLSX from 'xlsx';
+import { parseWorkbook } from '../utils/excel/parser';
 
 export async function decryptAndParse(file, password) {
   const arrayBuffer = await file.arrayBuffer();
@@ -34,18 +35,5 @@ export async function decryptAndParse(file, password) {
   }
 
   const workbook = XLSX.read(bytes, { type: 'array' });
-  const sheetName = workbook.SheetNames[0];
-  const worksheet = workbook.Sheets[sheetName];
-  const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
-
-  if (jsonData.length === 0) {
-    throw new Error('복호화된 파일에 데이터가 없습니다.');
-  }
-
-  return {
-    sheetName,
-    headers: Object.keys(jsonData[0]),
-    rows: jsonData,
-    totalRows: jsonData.length,
-  };
+  return parseWorkbook(workbook);
 }

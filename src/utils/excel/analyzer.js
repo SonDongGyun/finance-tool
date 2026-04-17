@@ -1,4 +1,5 @@
 import { parseDate, parseAmount } from './parser';
+import { buildRangeKey } from '../formatters';
 
 export function extractMonths(rows, dateColumn) {
   const months = new Set();
@@ -12,8 +13,29 @@ export function extractMonths(rows, dateColumn) {
   return Array.from(months).sort();
 }
 
+function resolveMonths(config, side) {
+  const arr = config[`months${side}`];
+  if (Array.isArray(arr) && arr.length > 0) return arr;
+  const single = config[`month${side}`];
+  return single ? [single] : [];
+}
+
+function labelFromMonths(months) {
+  if (months.length === 0) return '';
+  if (months.length === 1) return months[0];
+  const sorted = [...months].sort();
+  return buildRangeKey(sorted[0], sorted[sorted.length - 1]);
+}
+
 export function analyzeMonthlyChanges(rows, config) {
-  const { dateColumn, amountColumns, categoryColumn, descriptionColumn, vendorColumn, month1, month2 } = config;
+  const { dateColumn, amountColumns, categoryColumn, descriptionColumn, vendorColumn } = config;
+
+  const months1 = resolveMonths(config, 1);
+  const months2 = resolveMonths(config, 2);
+  const m1Set = new Set(months1);
+  const m2Set = new Set(months2);
+  const label1 = labelFromMonths(months1);
+  const label2 = labelFromMonths(months2);
 
   // Group data by month
   const m1Data = [];
@@ -34,8 +56,8 @@ export function analyzeMonthlyChanges(rows, config) {
 
     const entry = { ...row, _amount: amount, _category: category, _description: description, _vendor: vendor, _date: d };
 
-    if (key === month1) m1Data.push(entry);
-    else if (key === month2) m2Data.push(entry);
+    if (m1Set.has(key)) m1Data.push(entry);
+    else if (m2Set.has(key)) m2Data.push(entry);
   });
 
   // Category-level analysis
@@ -146,8 +168,8 @@ export function analyzeMonthlyChanges(rows, config) {
   const m2Total = m2Data.reduce((s, e) => s + e._amount, 0);
 
   return {
-    month1: { label: month1, total: m1Total, count: m1Data.length },
-    month2: { label: month2, total: m2Total, count: m2Data.length },
+    month1: { label: label1, total: m1Total, count: m1Data.length, months: months1 },
+    month2: { label: label2, total: m2Total, count: m2Data.length, months: months2 },
     totalDiff: m2Total - m1Total,
     totalPctChange: m1Total > 0 ? Math.round(((m2Total - m1Total) / m1Total) * 1000) / 10 : 0,
     categoryComparison,
