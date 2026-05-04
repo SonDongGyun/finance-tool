@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { Layers, ArrowRight, AlertTriangle } from 'lucide-react';
 import { GRADIENTS } from '../constants/colors';
+import { cardStyle } from '../styles/common';
 
 const selectStyle = {
   padding: '10px 14px',
@@ -146,7 +147,7 @@ export default function SheetComparator({ sheets, side1, side2, onSide1Change, o
         animate={{ opacity: 1, y: 0 }}
         style={{ maxWidth: '720px', marginLeft: 'auto', marginRight: 'auto', marginTop: '32px' }}
       >
-        <div className="glass" style={{ borderRadius: '16px', padding: '32px', textAlign: 'center' }}>
+        <div className="glass" style={{ ...cardStyle, textAlign: 'center' }}>
           <AlertTriangle style={{ width: '32px', height: '32px', color: '#f59e0b', margin: '0 auto 16px' }} />
           <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#e2e8f0', marginBottom: '8px' }}>
             시트별 비교에는 시트 2개 이상이 필요합니다
@@ -193,7 +194,7 @@ export default function SheetComparator({ sheets, side1, side2, onSide1Change, o
       transition={{ duration: 0.5, delay: 0.2 }}
       style={{ maxWidth: '820px', marginLeft: 'auto', marginRight: 'auto', marginTop: '32px' }}
     >
-      <div className="glass" style={{ borderRadius: '16px', padding: '32px' }}>
+      <div className="glass" style={cardStyle}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '24px' }}>
           <Layers style={{ width: '20px', height: '20px', color: '#60a5fa' }} />
           <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#e2e8f0' }}>시트별 비교</h3>

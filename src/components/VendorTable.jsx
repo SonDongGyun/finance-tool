@@ -6,17 +6,11 @@ import { smoothScrollTo } from '../utils/scroll';
 import CategoryTabs from './CategoryTabs';
 import StatusBadge from './StatusBadge';
 import SearchInput from './SearchInput';
+import StatusFilterBar from './StatusFilterBar';
+import { cardStyle } from '../styles/common';
 
 const DEFAULT_COUNT = 15;
 const PAGE_SIZE = 10;
-
-const STATUS_FILTERS = [
-  { key: 'all', label: '전체' },
-  { key: 'new', label: '신규' },
-  { key: 'removed', label: '제거' },
-  { key: 'increased', label: '증가' },
-  { key: 'decreased', label: '감소' },
-];
 
 export default function VendorTable({ result }) {
   const [visibleCount, setVisibleCount] = useState(DEFAULT_COUNT);
@@ -34,6 +28,17 @@ export default function VendorTable({ result }) {
     cats.sort((a, b) => a.localeCompare(b));
     return cats;
   }, [result.vendorComparison]);
+
+  // Counts respect the active category tab (but not the search/status filter
+   // itself), matching the previous inline computation.
+  const filterCounts = useMemo(() => {
+    const c = { new: 0, removed: 0, increased: 0, decreased: 0 };
+    result.vendorComparison.forEach(item => {
+      if (selectedCategory !== 'all' && item.category !== selectedCategory) return;
+      if (item.status in c) c[item.status]++;
+    });
+    return c;
+  }, [result.vendorComparison, selectedCategory]);
 
   const filtered = useMemo(() => {
     let arr = result.vendorComparison;
@@ -109,7 +114,7 @@ export default function VendorTable({ result }) {
       transition={{ duration: 0.5, delay: 0.4 }}
       style={{ marginTop: '32px' }}
     >
-      <div ref={sectionRef} className="glass" style={{ borderRadius: '16px', padding: '32px' }}>
+      <div ref={sectionRef} className="glass" style={cardStyle}>
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '16px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -138,28 +143,13 @@ export default function VendorTable({ result }) {
         />
 
         {/* Status Filters */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '20px' }}>
-          {STATUS_FILTERS.map(f => (
-            <button
-              key={f.key}
-              onClick={() => { setFilterStatus(f.key); setVisibleCount(DEFAULT_COUNT); }}
-              style={{
-                padding: '6px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: 600,
-                border: filterStatus === f.key ? '1px solid rgba(96,165,250,0.4)' : '1px solid rgba(100,116,139,0.2)',
-                background: filterStatus === f.key ? 'rgba(59,130,246,0.15)' : 'rgba(15,23,42,0.4)',
-                color: filterStatus === f.key ? '#60a5fa' : '#94a3b8',
-                cursor: 'pointer',
-              }}
-            >
-              {f.label}
-              {f.key !== 'all' && (
-                <span style={{ marginLeft: '6px', opacity: 0.7, fontSize: '11px' }}>
-                  {result.vendorComparison.filter(c => c.status === f.key && (selectedCategory === 'all' || c.category === selectedCategory)).length}
-                </span>
-              )}
-            </button>
-          ))}
-        </div>
+        <StatusFilterBar
+          value={filterStatus}
+          onChange={(k) => { setFilterStatus(k); setVisibleCount(DEFAULT_COUNT); }}
+          counts={filterCounts}
+          size="compact"
+          marginBottom={20}
+        />
 
         {/* Table */}
         <div style={{ overflowX: 'auto', borderRadius: '12px' }}>

@@ -1,5 +1,12 @@
 import { COLORS, GRADIENTS } from '../constants/colors';
 
+// Default frosted card frame: pair with className="glass" or "glass-light".
+// Components compose it with extra props (textAlign, maxWidth) when needed.
+export const cardStyle = {
+  borderRadius: '16px',
+  padding: '32px',
+};
+
 export const selectStyle = {
   width: '100%',
   padding: '10px 14px',

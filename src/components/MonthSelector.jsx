@@ -2,6 +2,7 @@ import { motion } from 'framer-motion';
 import { Calendar, ArrowRight } from 'lucide-react';
 import { formatMonthLabel } from '../utils/formatters';
 import { GRADIENTS } from '../constants/colors';
+import { cardStyle } from '../styles/common';
 
 const selectStyle = {
   width: '100%',
@@ -119,7 +120,7 @@ export default function MonthSelector({
       transition={{ duration: 0.5, delay: 0.3 }}
       style={{ maxWidth: '720px', marginLeft: 'auto', marginRight: 'auto', marginTop: '32px' }}
     >
-      <div className="glass" style={{ borderRadius: '16px', padding: '32px' }}>
+      <div className="glass" style={cardStyle}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
           <Calendar style={{ width: '20px', height: '20px', color: '#60a5fa' }} />
           <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#e2e8f0' }}>비교 기간 선택</h3>

@@ -4,14 +4,8 @@ import { ChevronDown, ChevronUp, Filter } from 'lucide-react';
 import { formatMoney, formatMonthLabel } from '../utils/formatters';
 import StatusBadge from './StatusBadge';
 import SearchInput from './SearchInput';
-
-const FILTERS = [
-  { key: 'all', label: '전체' },
-  { key: 'new', label: '신규' },
-  { key: 'removed', label: '제거' },
-  { key: 'increased', label: '증가' },
-  { key: 'decreased', label: '감소' },
-];
+import StatusFilterBar from './StatusFilterBar';
+import { cardStyle } from '../styles/common';
 
 function ExpandedRow({ item, result }) {
   return (
@@ -70,6 +64,14 @@ export default function DetailTable({ result }) {
   const [sortBy, setSortBy] = useState('diff');
   const [sortDir, setSortDir] = useState('desc');
 
+  const filterCounts = useMemo(() => {
+    const c = { new: 0, removed: 0, increased: 0, decreased: 0 };
+    result.categoryComparison.forEach(item => {
+      if (item.status in c) c[item.status]++;
+    });
+    return c;
+  }, [result.categoryComparison]);
+
   const data = useMemo(() => {
     const term = searchTerm.toLowerCase();
     const filtered = result.categoryComparison.filter(c => {
@@ -112,7 +114,7 @@ export default function DetailTable({ result }) {
       transition={{ duration: 0.5, delay: 0.3 }}
       style={{ marginTop: '32px' }}
     >
-      <div className="glass" style={{ borderRadius: '16px', padding: '32px' }}>
+      <div className="glass" style={cardStyle}>
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -132,31 +134,7 @@ export default function DetailTable({ result }) {
         </div>
 
         {/* Filters */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '24px' }}>
-          {FILTERS.map(f => (
-            <button
-              key={f.key}
-              onClick={() => setFilter(f.key)}
-              style={{
-                padding: '8px 16px',
-                borderRadius: '8px',
-                fontSize: '13px',
-                fontWeight: 600,
-                border: filter === f.key ? '1px solid rgba(96,165,250,0.4)' : '1px solid rgba(100,116,139,0.2)',
-                background: filter === f.key ? 'rgba(59,130,246,0.15)' : 'rgba(15,23,42,0.4)',
-                color: filter === f.key ? '#60a5fa' : '#94a3b8',
-                cursor: 'pointer',
-              }}
-            >
-              {f.label}
-              {f.key !== 'all' && (
-                <span style={{ marginLeft: '6px', opacity: 0.7, fontSize: '12px' }}>
-                  {result.categoryComparison.filter(c => c.status === f.key).length}
-                </span>
-              )}
-            </button>
-          ))}
-        </div>
+        <StatusFilterBar value={filter} onChange={setFilter} counts={filterCounts} />
 
         {/* Table */}
         <div style={{ overflowX: 'auto', borderRadius: '12px' }}>

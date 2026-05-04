@@ -6,27 +6,7 @@ import {
   detectCategoryColumn, detectDescriptionColumn, detectVendorColumn
 } from '../utils/excel/detector';
 import { GRADIENTS } from '../constants/colors';
-
-const selectStyle = {
-  width: '100%',
-  padding: '10px 14px',
-  borderRadius: '8px',
-  background: 'rgba(30,41,59,0.8)',
-  border: '1px solid rgba(100,116,139,0.3)',
-  fontSize: '14px',
-  color: '#e2e8f0',
-  outline: 'none',
-  cursor: 'pointer',
-  appearance: 'none',
-};
-
-const labelStyle = {
-  display: 'block',
-  fontSize: '13px',
-  color: '#94a3b8',
-  marginBottom: '6px',
-  fontWeight: 500,
-};
+import { cardStyle, selectStyle, labelStyle } from '../styles/common';
 
 function SelectField({ label, value, onChange, required, headers }) {
   return (
@@ -103,7 +83,7 @@ export default function ColumnMapper({ headers, onConfirm }) {
       transition={{ duration: 0.5, delay: 0.3 }}
       style={{ maxWidth: '720px', marginLeft: 'auto', marginRight: 'auto', marginTop: '32px' }}
     >
-      <div className="glass" style={{ borderRadius: '16px', padding: '32px' }}>
+      <div className="glass" style={cardStyle}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
           <Settings2 style={{ width: '20px', height: '20px', color: '#a78bfa' }} />
           <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#e2e8f0' }}>컬럼 매핑 설정</h3>

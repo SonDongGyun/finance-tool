@@ -6,6 +6,7 @@ import {
 } from 'recharts';
 import { BarChart3, PieChart as PieChartIcon } from 'lucide-react';
 import { formatMoney, formatMonthLabel } from '../utils/formatters';
+import { cardStyle } from '../styles/common';
 
 const COLORS = [
   '#3b82f6', '#8b5cf6', '#06b6d4', '#10b981', '#f59e0b',
@@ -81,7 +82,7 @@ export default function AnalysisCharts({ result }) {
       transition={{ duration: 0.5, delay: 0.2 }}
       style={{ marginTop: '32px' }}
     >
-      <div className="glass" style={{ borderRadius: '16px', padding: '32px' }}>
+      <div className="glass" style={cardStyle}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '28px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <BarChart3 style={{ width: '20px', height: '20px', color: '#60a5fa' }} />

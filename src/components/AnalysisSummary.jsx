@@ -4,6 +4,7 @@ import { MessageSquareText, PlusCircle, MinusCircle, AlertTriangle, ChevronDown,
 import { formatMoney, formatMonthLabel } from '../utils/formatters';
 import { smoothScrollTo } from '../utils/scroll';
 import { COLORS, STATUS_COLORS } from '../constants/colors';
+import { cardStyle } from '../styles/common';
 import { UNCATEGORIZED } from '../constants/defaults';
 import CategoryTabs from './CategoryTabs';
 
@@ -283,7 +284,7 @@ export default function AnalysisSummary({ result }) {
       transition={{ duration: 0.5, delay: 0.15 }}
       style={{ marginTop: '32px' }}
     >
-      <div ref={sectionRef} className="glass" style={{ borderRadius: '16px', padding: '32px' }}>
+      <div ref={sectionRef} className="glass" style={cardStyle}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
           <MessageSquareText style={{ width: '20px', height: '20px', color: '#fbbf24' }} />
           <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#e2e8f0' }}>분석 요약</h3>
