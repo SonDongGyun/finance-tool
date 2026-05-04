@@ -1,4 +1,5 @@
-export { parseExcelFile, parseWorkbook, parseDate, parseAmount, EncryptedFileError } from './parser';
+export { parseExcelFile, parseWorkbook, parseDate, parseAmount, parseSummaryLabel, EncryptedFileError } from './parser';
+export type { SummaryKind } from './parser';
 export {
   detectDateColumn,
   detectAmountColumns,

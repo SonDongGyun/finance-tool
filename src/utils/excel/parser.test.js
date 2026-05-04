@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseDate, parseAmount } from './parser';
+import { parseDate, parseAmount, parseSummaryLabel } from './parser';
 
 describe('parseDate', () => {
   it('returns null for empty inputs', () => {
@@ -107,5 +107,38 @@ describe('parseAmount', () => {
   it('returns 0 for non-numeric strings', () => {
     expect(parseAmount('abc')).toBe(0);
     expect(parseAmount('not a number')).toBe(0);
+  });
+});
+
+describe('parseSummaryLabel', () => {
+  it('returns null for blank or non-summary values', () => {
+    expect(parseSummaryLabel(null)).toBeNull();
+    expect(parseSummaryLabel(undefined)).toBeNull();
+    expect(parseSummaryLabel('')).toBeNull();
+    expect(parseSummaryLabel('   ')).toBeNull();
+    expect(parseSummaryLabel('2025-01-15')).toBeNull();
+    expect(parseSummaryLabel('not a label')).toBeNull();
+  });
+
+  it('recognizes 월계 as monthly summary', () => {
+    expect(parseSummaryLabel('월계')).toBe('monthly');
+    expect(parseSummaryLabel('  월계  ')).toBe('monthly');
+  });
+
+  it('recognizes 누계 as cumulative', () => {
+    expect(parseSummaryLabel('누계')).toBe('cumulative');
+  });
+
+  it('recognizes 소계/합계/총계 as generic subtotals', () => {
+    expect(parseSummaryLabel('소계')).toBe('subtotal');
+    expect(parseSummaryLabel('합계')).toBe('subtotal');
+    expect(parseSummaryLabel('총계')).toBe('subtotal');
+  });
+
+  it('does NOT match labels that merely contain the keywords', () => {
+    // Strict equality avoids false positives like a vendor or memo containing
+    // these substrings being misclassified as a summary row.
+    expect(parseSummaryLabel('월계산서')).toBeNull();
+    expect(parseSummaryLabel('누계 (참고)')).toBeNull();
   });
 });

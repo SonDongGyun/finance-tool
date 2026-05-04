@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { TrendingUp, TrendingDown, Plus, Minus, ArrowUpRight, ArrowDownRight, Equal, AlertTriangle } from 'lucide-react';
+import { TrendingUp, TrendingDown, Plus, Minus, ArrowUpRight, ArrowDownRight, Equal, AlertTriangle, Info } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { formatMoney, formatMonthLabel } from '../utils/formatters';
 import { GRADIENTS } from '../constants/colors';
@@ -52,7 +52,11 @@ interface SummaryCardsProps {
 }
 
 export default function SummaryCards({ result }: SummaryCardsProps) {
-  const { month1, month2, totalDiff, totalPctChange, newItems, removedItems, increasedItems, decreasedItems, skippedRowCount } = result;
+  const {
+    month1, month2, totalDiff, totalPctChange,
+    newItems, removedItems, increasedItems, decreasedItems,
+    skippedRowCount, skippedSummaryCount, monthlyOnlyCategories,
+  } = result;
 
   const cards = [
     {
@@ -182,6 +186,39 @@ export default function SummaryCards({ result }: SummaryCardsProps) {
             날짜를 인식하지 못한 <strong>{skippedRowCount.toLocaleString('ko-KR')}건</strong>이 분석에서 제외되었어요.
             합계가 원본 엑셀과 다를 수 있다면 날짜 컬럼 형식을 확인해주세요.
           </span>
+        </motion.div>
+      )}
+
+      {(skippedSummaryCount > 0 || monthlyOnlyCategories.length > 0) && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.7 }}
+          role="status"
+          style={{
+            marginTop: '12px',
+            display: 'flex', alignItems: 'flex-start', gap: '10px',
+            padding: '12px 16px', borderRadius: '10px',
+            background: 'rgba(96,165,250,0.08)',
+            border: '1px solid rgba(96,165,250,0.25)',
+            color: '#bfdbfe', fontSize: '13px', lineHeight: 1.6,
+          }}
+        >
+          <Info style={{ width: '16px', height: '16px', flexShrink: 0, marginTop: '2px' }} />
+          <div>
+            {skippedSummaryCount > 0 && (
+              <div>
+                <strong>월계·누계 행 {skippedSummaryCount.toLocaleString('ko-KR')}건</strong>은
+                회계장부 합계 행으로 자동 인식되어 분석 중복을 막기 위해 제외되었어요.
+              </div>
+            )}
+            {monthlyOnlyCategories.length > 0 && (
+              <div style={{ marginTop: skippedSummaryCount > 0 ? '6px' : 0 }}>
+                개별 거래가 없는 다음 계정은 <strong>월계 행</strong>을 데이터로 사용했어요:&nbsp;
+                <strong>{monthlyOnlyCategories.join(', ')}</strong>
+              </div>
+            )}
+          </div>
         </motion.div>
       )}
     </motion.div>

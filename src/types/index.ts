@@ -85,6 +85,11 @@ export interface AnalysisResult {
   increasedItems: CategoryComparison[];
   decreasedItems: CategoryComparison[];
   skippedRowCount: number;
+  // 월계/누계 라벨로 자동 인식되어 silently 처리된 행 수.
+  // 사용자에게 "데이터 손실 아님" 정보용으로 표시.
+  skippedSummaryCount: number;
+  // 개별 거래 없이 월계 행으로만 분석된 계정 목록 (분석 신뢰성 안내용).
+  monthlyOnlyCategories: string[];
 }
 
 // Sheet-mode analysis: each sheet contributes its dominant year + months.

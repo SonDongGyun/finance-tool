@@ -202,6 +202,113 @@ describe('analyzeSheetComparison', () => {
   });
 });
 
+describe('월계/누계 자동 처리', () => {
+  // Mirrors the user's actual data shape: some categories have individual
+  // transactions plus 월계/누계 summary rows; other categories only have
+  // 월계/누계 (no per-transaction lines).
+  function buildLedger() {
+    return [
+      // 건물관리비: 개별 거래 + 월계 + 누계 (월계는 무시되어야 함)
+      { _sheet: 'S', date: '2026-03-31', amount: 1000, category: '건물관리비', vendor: 'A' },
+      { _sheet: 'S', date: '2026-03-31', amount: 2000, category: '건물관리비', vendor: 'B' },
+      { _sheet: 'S', date: '월계',        amount: 3000, category: '건물관리비', vendor: '' },
+      { _sheet: 'S', date: '누계',        amount: 3000, category: '건물관리비', vendor: '' },
+      // 무형고정자산상각: 1·2·3월 모두 개별 거래 + 월계
+      { _sheet: 'S', date: '2026-01-31', amount: 100, category: '무형상각', vendor: '' },
+      { _sheet: 'S', date: '2026-02-28', amount: 200, category: '무형상각', vendor: '' },
+      { _sheet: 'S', date: '2026-03-31', amount: 300, category: '무형상각', vendor: '' },
+      { _sheet: 'S', date: '월계',        amount: 100, category: '무형상각', vendor: '' },
+      { _sheet: 'S', date: '월계',        amount: 200, category: '무형상각', vendor: '' },
+      { _sheet: 'S', date: '월계',        amount: 300, category: '무형상각', vendor: '' },
+      // 복리후생비: 개별 거래 없이 월계만 (3개월) → 월계로 분석되어야 함
+      { _sheet: 'S', date: '월계',        amount: 5000, category: '복리후생비', vendor: '' },
+      { _sheet: 'S', date: '월계',        amount: 6000, category: '복리후생비', vendor: '' },
+      { _sheet: 'S', date: '월계',        amount: 7000, category: '복리후생비', vendor: '' },
+      // 누계 행은 항상 무시
+      { _sheet: 'S', date: '누계',        amount: 5000, category: '복리후생비', vendor: '' },
+      { _sheet: 'S', date: '누계',        amount: 11000, category: '복리후생비', vendor: '' },
+      { _sheet: 'S', date: '누계',        amount: 18000, category: '복리후생비', vendor: '' },
+    ];
+  }
+
+  it('drops cumulative/subtotal rows silently and counts them as skippedSummary', () => {
+    const result = analyzeMonthlyChanges(buildLedger(), {
+      ...baseConfig,
+      months1: ['2026-01'],
+      months2: ['2026-03'],
+    });
+    // 월계 6 + 누계 5 = 11 summary rows; none should land in skippedRowCount.
+    expect(result.skippedSummaryCount).toBe(11);
+    expect(result.skippedRowCount).toBe(0);
+  });
+
+  it('uses individual transactions when available and ignores their 월계 duplicates', () => {
+    const result = analyzeMonthlyChanges(buildLedger(), {
+      ...baseConfig,
+      months1: ['2026-01'],
+      months2: ['2026-03'],
+    });
+    const cat = result.categoryComparison.find(c => c.category === '무형상각');
+    // Without the dedup, this would double to 200/600 because we'd add the
+    // 월계 row on top of the individual transactions.
+    expect(cat.prevAmount).toBe(100);
+    expect(cat.currAmount).toBe(300);
+  });
+
+  it('synthesizes entries from 월계 rows for categories with no individual transactions', () => {
+    const result = analyzeMonthlyChanges(buildLedger(), {
+      ...baseConfig,
+      months1: ['2026-01'],
+      months2: ['2026-03'],
+    });
+    const cat = result.categoryComparison.find(c => c.category === '복리후생비');
+    expect(cat).toBeDefined();
+    // 1번째 월계(5000) → 2026-01, 2번째(6000) → 2026-02, 3번째(7000) → 2026-03
+    expect(cat.prevAmount).toBe(5000);
+    expect(cat.currAmount).toBe(7000);
+    expect(result.monthlyOnlyCategories).toContain('복리후생비');
+    expect(result.monthlyOnlyCategories).not.toContain('무형상각');
+    expect(result.monthlyOnlyCategories).not.toContain('건물관리비');
+  });
+
+  it('drops 월계-only categories when the sheet has no real-date entries to anchor a month range', () => {
+    // Without any real dates, we cannot place 월계 rows on a timeline → drop.
+    const rows = [
+      { _sheet: 'S', date: '월계', amount: 1000, category: '복리후생비' },
+      { _sheet: 'S', date: '월계', amount: 2000, category: '복리후생비' },
+    ];
+    const result = analyzeMonthlyChanges(rows, {
+      ...baseConfig,
+      months1: ['2026-01'],
+      months2: ['2026-02'],
+    });
+    expect(result.month1.total).toBe(0);
+    expect(result.month2.total).toBe(0);
+    // Still counted in skippedSummary so user sees they weren't truly lost.
+    expect(result.skippedSummaryCount).toBe(2);
+  });
+
+  it('analyzeSheetComparison aggregates monthlyOnlyCategories across both sheets', () => {
+    const sheet1 = [
+      { _sheet: 'A', date: '2024-01-01', amount: 10, category: '교통비' },
+      { _sheet: 'A', date: '월계',        amount: 100, category: '복리후생비' },
+    ];
+    const sheet2 = [
+      { _sheet: 'B', date: '2025-01-01', amount: 20, category: '교통비' },
+      { _sheet: 'B', date: '월계',        amount: 200, category: '복리후생비' },
+    ];
+    const result = analyzeSheetComparison(
+      sheet1, sheet2, baseConfig,
+      ['2024-01'], ['2025-01'],
+    );
+    expect(result.monthlyOnlyCategories).toEqual(['복리후생비']);
+    // 복리후생비는 양쪽에서 월계로만 등장하므로 100 vs 200으로 비교됨.
+    const cat = result.categoryComparison.find(c => c.category === '복리후생비');
+    expect(cat.prevAmount).toBe(100);
+    expect(cat.currAmount).toBe(200);
+  });
+});
+
 describe('debit/credit amount handling', () => {
   it('treats debit minus credit as the row amount', () => {
     const rows = [

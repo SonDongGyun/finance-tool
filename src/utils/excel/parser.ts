@@ -81,6 +81,24 @@ const EXCEL_EPOCH_MS = Date.UTC(1899, 11, 30);
 const EXCEL_SERIAL_MIN = 1;
 const EXCEL_SERIAL_MAX = 73000;
 
+// Korean accounting summary-row labels that appear in the date column instead
+// of an actual date. These rows aggregate the transactions above them, so
+// blindly summing them alongside individual rows would double-count.
+//   - 'monthly': 그 월의 합계 → 개별 거래가 없는 계정에 한해 데이터로 활용
+//   - 'cumulative': 누적 잔액 → 항상 무시 (이미 월계로 표현됨)
+//   - 'subtotal': 일반 소계 → 무시 (정확한 의미가 시트마다 달라 보수적으로 제외)
+export type SummaryKind = 'monthly' | 'cumulative' | 'subtotal';
+
+export function parseSummaryLabel(val: unknown): SummaryKind | null {
+  if (val === null || val === undefined) return null;
+  const str = String(val).trim();
+  if (str === '') return null;
+  if (str === '월계') return 'monthly';
+  if (str === '누계') return 'cumulative';
+  if (str === '소계' || str === '합계' || str === '총계') return 'subtotal';
+  return null;
+}
+
 export function parseDate(val: unknown): Date | null {
   if (val === null || val === undefined || val === '') return null;
 
