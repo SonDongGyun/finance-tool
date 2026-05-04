@@ -2,11 +2,7 @@ import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Upload, FileSpreadsheet, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 import { useWindowSize } from '../hooks/useWindowSize';
-
-// Mirrors the server-side cap in api/decrypt.py — fail fast in the browser
-// instead of round-tripping a multi-megabyte upload only to be rejected.
-const MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024;
-const ACCEPTED_EXTS = ['xlsx', 'xls', 'csv'];
+import { MAX_FILE_SIZE_BYTES, ACCEPTED_UPLOAD_EXTS } from '../constants/limits';
 
 export default function FileUpload({ onFileLoaded, isLoaded }) {
   const { isMobile } = useWindowSize();
@@ -19,7 +15,7 @@ export default function FileUpload({ onFileLoaded, isLoaded }) {
     if (!file) return;
 
     const ext = file.name.split('.').pop().toLowerCase();
-    if (!ACCEPTED_EXTS.includes(ext)) {
+    if (!ACCEPTED_UPLOAD_EXTS.includes(ext)) {
       setError('엑셀 파일(.xlsx, .xls) 또는 CSV 파일만 업로드 가능합니다.');
       return;
     }
