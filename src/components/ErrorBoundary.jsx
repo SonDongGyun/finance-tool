@@ -49,7 +49,10 @@ export default class ErrorBoundary extends Component {
           <p style={{ fontSize: '14px', color: '#94a3b8', marginBottom: '24px', lineHeight: 1.6 }}>
             화면을 다시 불러오거나, 문제가 지속되면 파일을 다시 업로드해 주세요.
           </p>
-          {this.state.error?.message && (
+          {/* Internal error text only in dev — production users see the
+              friendly heading above and the action buttons below, while the
+              full trace stays in the console for debugging. */}
+          {import.meta.env.DEV && this.state.error?.message && (
             <pre style={{
               fontSize: '12px', color: '#fca5a5', background: 'rgba(15,23,42,0.6)',
               padding: '12px', borderRadius: '8px', textAlign: 'left',
