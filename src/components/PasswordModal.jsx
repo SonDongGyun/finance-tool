@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Lock, Loader2, X } from 'lucide-react';
+import { GRADIENTS } from '../constants/colors';
 
 export default function PasswordModal({ isOpen, onSubmit, onClose, error, isLoading }) {
   const [password, setPassword] = useState('');
@@ -68,7 +69,7 @@ export default function PasswordModal({ isOpen, onSubmit, onClose, error, isLoad
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <div style={{
                 width: '44px', height: '44px', borderRadius: '12px',
-                background: 'linear-gradient(135deg, #f59e0b, #ef4444)',
+                background: GRADIENTS.warm,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>
                 <Lock style={{ width: '22px', height: '22px', color: 'white' }} />
@@ -128,7 +129,7 @@ export default function PasswordModal({ isOpen, onSubmit, onClose, error, isLoad
                 borderRadius: '10px', fontSize: '15px', fontWeight: 600,
                 border: 'none', cursor: isLoading ? 'wait' : 'pointer',
                 background: password.trim()
-                  ? 'linear-gradient(135deg, #3b82f6, #8b5cf6)'
+                  ? GRADIENTS.primary
                   : 'rgba(51,65,85,0.4)',
                 color: password.trim() ? 'white' : '#64748b',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',

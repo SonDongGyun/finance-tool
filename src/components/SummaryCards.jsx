@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { TrendingUp, TrendingDown, Plus, Minus, ArrowUpRight, ArrowDownRight, Equal, AlertTriangle } from 'lucide-react';
 import { formatMoney, formatMonthLabel } from '../utils/formatters';
+import { GRADIENTS, STATUS_COLORS } from '../constants/colors';
 import { useEffect, useRef, useState } from 'react';
 
 const ANIMATION_DURATION_MS = 1500;
@@ -48,14 +49,14 @@ export default function SummaryCards({ result }) {
       value: month1.total,
       sub: `${month1.count}건`,
       icon: <Equal style={{ width: '20px', height: '20px' }} />,
-      gradient: 'linear-gradient(135deg, #64748b, #475569)',
+      gradient: GRADIENTS.slate,
     },
     {
       label: formatMonthLabel(month2.label),
       value: month2.total,
       sub: `${month2.count}건`,
       icon: <Equal style={{ width: '20px', height: '20px' }} />,
-      gradient: 'linear-gradient(135deg, #3b82f6, #2563eb)',
+      gradient: GRADIENTS.blueDeep,
     },
     {
       label: '총 증감액',
@@ -65,8 +66,8 @@ export default function SummaryCards({ result }) {
         ? <TrendingUp style={{ width: '20px', height: '20px' }} />
         : <TrendingDown style={{ width: '20px', height: '20px' }} />,
       gradient: totalDiff >= 0
-        ? 'linear-gradient(135deg, #ef4444, #f97316)'
-        : 'linear-gradient(135deg, #10b981, #14b8a6)',
+        ? GRADIENTS.warmReverse
+        : GRADIENTS.success,
     },
   ];
 

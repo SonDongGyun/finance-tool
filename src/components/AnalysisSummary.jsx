@@ -2,6 +2,8 @@ import { useState, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MessageSquareText, PlusCircle, MinusCircle, AlertTriangle, ChevronDown, SlidersHorizontal } from 'lucide-react';
 import { formatMoney, formatMonthLabel } from '../utils/formatters';
+import { smoothScrollTo } from '../utils/scroll';
+import { COLORS, STATUS_COLORS } from '../constants/colors';
 import { UNCATEGORIZED } from '../constants/defaults';
 import CategoryTabs from './CategoryTabs';
 
@@ -20,24 +22,6 @@ const THRESHOLD_OPTIONS = [
   { label: '500만원 이상', value: 5000000 },
 ];
 
-function smoothScrollTo(ref) {
-  const el = ref?.current;
-  if (!el) return;
-  const targetY = el.getBoundingClientRect().top + window.scrollY - 20;
-  const startY = window.scrollY;
-  const diff = targetY - startY;
-  const duration = 600;
-  let start = null;
-  function step(timestamp) {
-    if (!start) start = timestamp;
-    const t = Math.min((timestamp - start) / duration, 1);
-    const ease = 1 - Math.pow(1 - t, 3);
-    window.scrollTo(0, startY + diff * ease);
-    if (t < 1) requestAnimationFrame(step);
-  }
-  requestAnimationFrame(step);
-}
-
 const listBtnStyle = {
   padding: '8px 16px',
   borderRadius: '8px', fontSize: '12px', fontWeight: 600,
@@ -51,13 +35,15 @@ function KeyChangeItem({ item, type }) {
   const isNew = type === 'new';
   const amount = isNew ? item.currAmount : item.prevAmount;
   const items = isNew ? item.currItems : item.prevItems;
+  const palette = isNew ? STATUS_COLORS.new : STATUS_COLORS.removed;
+  const Icon = isNew ? PlusCircle : MinusCircle;
 
   return (
     <div
       onClick={() => items.length > 0 && setExpanded(!expanded)}
       style={{
-        background: isNew ? 'rgba(59,130,246,0.08)' : 'rgba(249,115,22,0.08)',
-        border: `1px solid ${isNew ? 'rgba(59,130,246,0.2)' : 'rgba(249,115,22,0.2)'}`,
+        background: palette.soft,
+        border: `1px solid ${palette.softBorder}`,
         borderRadius: '10px',
         padding: '12px 16px',
         cursor: items.length > 0 ? 'pointer' : 'default',
@@ -65,10 +51,7 @@ function KeyChangeItem({ item, type }) {
     >
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: 0 }}>
-          {isNew
-            ? <PlusCircle style={{ width: '16px', height: '16px', color: '#60a5fa', flexShrink: 0 }} />
-            : <MinusCircle style={{ width: '16px', height: '16px', color: '#fb923c', flexShrink: 0 }} />
-          }
+          <Icon style={{ width: '16px', height: '16px', color: palette.fg, flexShrink: 0 }} />
           <span style={{
             fontSize: '14px', fontWeight: 600, color: '#e2e8f0',
             overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
@@ -79,7 +62,7 @@ function KeyChangeItem({ item, type }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
           <span style={{
             fontSize: '14px', fontWeight: 700, fontFamily: 'monospace',
-            color: isNew ? '#60a5fa' : '#fb923c',
+            color: palette.fg,
           }}>
             {formatMoney(amount)}원
           </span>
@@ -205,11 +188,11 @@ function generateSummaryLines(result) {
 }
 
 const dotColors = {
-  increase: '#f87171',
-  decrease: '#34d399',
-  new: '#60a5fa',
-  removed: '#fb923c',
-  neutral: '#94a3b8',
+  increase: STATUS_COLORS.increased.fg,
+  decrease: STATUS_COLORS.decreased.fg,
+  new: STATUS_COLORS.new.fg,
+  removed: STATUS_COLORS.removed.fg,
+  neutral: STATUS_COLORS.unchanged.fg,
 };
 
 function CategorySummaryCard({ category, result }) {
@@ -230,7 +213,7 @@ function CategorySummaryCard({ category, result }) {
         <div style={{ display: 'flex', gap: '20px', fontSize: '13px' }}>
           <span style={{ color: '#94a3b8' }}>이전: <span style={{ color: '#cbd5e1', fontFamily: 'monospace' }}>{formatMoney(item.prevAmount)}원</span></span>
           <span style={{ color: '#94a3b8' }}>현재: <span style={{ color: '#cbd5e1', fontFamily: 'monospace' }}>{formatMoney(item.currAmount)}원</span></span>
-          <span style={{ color: item.diff > 0 ? '#f87171' : item.diff < 0 ? '#34d399' : '#94a3b8', fontWeight: 600, fontFamily: 'monospace' }}>
+          <span style={{ color: item.diff > 0 ? STATUS_COLORS.increased.fg : item.diff < 0 ? STATUS_COLORS.decreased.fg : COLORS.sub, fontWeight: 600, fontFamily: 'monospace' }}>
             {item.diff > 0 ? '+' : ''}{formatMoney(item.diff)}원
             {item.pctChange !== 0 && ` (${item.pctChange > 0 ? '+' : ''}${item.pctChange}%)`}
           </span>

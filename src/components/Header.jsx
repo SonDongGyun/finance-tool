@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { BarChart3, Sparkles, TrendingUp, FileSpreadsheet, Zap } from 'lucide-react';
 import { useWindowSize } from '../hooks/useWindowSize';
+import { GRADIENTS } from '../constants/colors';
 
 export default function Header({ isCompact }) {
   const { isMobile: mobile } = useWindowSize();
@@ -18,7 +19,7 @@ export default function Header({ isCompact }) {
             <div
               style={{
                 width: '40px', height: '40px', borderRadius: '12px',
-                background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)',
+                background: GRADIENTS.primary,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 boxShadow: '0 4px 12px rgba(59,130,246,0.25)',
               }}
@@ -45,21 +46,21 @@ export default function Header({ isCompact }) {
       icon: <FileSpreadsheet style={{ width: '28px', height: '28px' }} />,
       title: '엑셀 업로드',
       desc: '재무 데이터 엑셀 파일을 드래그 앤 드롭으로 간편하게 업로드하세요.',
-      gradient: 'linear-gradient(135deg, #3b82f6, #06b6d4)',
+      gradient: GRADIENTS.cool,
       shadow: '0 8px 24px rgba(59,130,246,0.2)',
     },
     {
       icon: <TrendingUp style={{ width: '28px', height: '28px' }} />,
       title: '기간·연도별 비교',
       desc: '월·기간 단위 비교는 물론 시트가 나뉜 연도 간 비교까지 한 번에 수행합니다.',
-      gradient: 'linear-gradient(135deg, #8b5cf6, #ec4899)',
+      gradient: GRADIENTS.vivid,
       shadow: '0 8px 24px rgba(139,92,246,0.2)',
     },
     {
       icon: <Zap style={{ width: '28px', height: '28px' }} />,
       title: '인사이트 도출',
       desc: '카테고리별, 거래처별 변동을 차트와 문장으로 한눈에 파악할 수 있습니다.',
-      gradient: 'linear-gradient(135deg, #f59e0b, #ef4444)',
+      gradient: GRADIENTS.warm,
       shadow: '0 8px 24px rgba(245,158,11,0.2)',
     },
   ];

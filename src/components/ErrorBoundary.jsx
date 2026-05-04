@@ -1,5 +1,6 @@
 import { Component } from 'react';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
+import { GRADIENTS } from '../constants/colors';
 
 export default class ErrorBoundary extends Component {
   constructor(props) {
@@ -36,7 +37,7 @@ export default class ErrorBoundary extends Component {
         }}>
           <div style={{
             width: '56px', height: '56px', borderRadius: '14px',
-            background: 'linear-gradient(135deg, #ef4444, #f97316)',
+            background: GRADIENTS.warmReverse,
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
             marginBottom: '20px',
           }}>
@@ -73,7 +74,7 @@ export default class ErrorBoundary extends Component {
               onClick={this.handleReload}
               style={{
                 padding: '10px 20px', borderRadius: '8px', fontSize: '14px', fontWeight: 600,
-                background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)', color: 'white',
+                background: GRADIENTS.primary, color: 'white',
                 border: 'none', cursor: 'pointer',
                 display: 'inline-flex', alignItems: 'center', gap: '6px',
               }}

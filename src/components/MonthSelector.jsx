@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { Calendar, ArrowRight } from 'lucide-react';
 import { formatMonthLabel } from '../utils/formatters';
+import { GRADIENTS } from '../constants/colors';
 
 const selectStyle = {
   width: '100%',
@@ -29,7 +30,7 @@ function ToggleButton({ active, onClick, children }) {
         fontWeight: 600,
         border: 'none',
         cursor: 'pointer',
-        background: active ? 'linear-gradient(135deg, #3b82f6, #8b5cf6)' : 'transparent',
+        background: active ? GRADIENTS.primary : 'transparent',
         color: active ? 'white' : '#94a3b8',
         transition: 'all 0.2s',
       }}
@@ -199,7 +200,7 @@ export default function MonthSelector({
             border: 'none',
             cursor: canAnalyze ? 'pointer' : 'not-allowed',
             background: canAnalyze
-              ? 'linear-gradient(135deg, #3b82f6, #8b5cf6)'
+              ? GRADIENTS.primary
               : 'rgba(51,65,85,0.4)',
             color: canAnalyze ? 'white' : '#64748b',
           }}

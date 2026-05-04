@@ -2,14 +2,21 @@ import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, ChevronUp, Filter, ArrowUpRight, ArrowDownRight, Plus, Minus, Search, X } from 'lucide-react';
 import { formatMoney, formatMonthLabel } from '../utils/formatters';
+import { STATUS_COLORS } from '../constants/colors';
 
-const statusStyles = {
-  new: { label: '신규', color: '#60a5fa', bg: 'rgba(59,130,246,0.12)', border: 'rgba(59,130,246,0.3)', Icon: Plus },
-  removed: { label: '제거', color: '#fb923c', bg: 'rgba(249,115,22,0.12)', border: 'rgba(249,115,22,0.3)', Icon: Minus },
-  increased: { label: '증가', color: '#f87171', bg: 'rgba(239,68,68,0.12)', border: 'rgba(239,68,68,0.3)', Icon: ArrowUpRight },
-  decreased: { label: '감소', color: '#34d399', bg: 'rgba(16,185,129,0.12)', border: 'rgba(16,185,129,0.3)', Icon: ArrowDownRight },
-  unchanged: { label: '동일', color: '#94a3b8', bg: 'rgba(148,163,184,0.12)', border: 'rgba(148,163,184,0.3)', Icon: null },
+const STATUS_META = {
+  new:       { label: '신규', Icon: Plus },
+  removed:   { label: '제거', Icon: Minus },
+  increased: { label: '증가', Icon: ArrowUpRight },
+  decreased: { label: '감소', Icon: ArrowDownRight },
+  unchanged: { label: '동일', Icon: null },
 };
+
+function statusStyle(status) {
+  const c = STATUS_COLORS[status];
+  const m = STATUS_META[status];
+  return { ...m, color: c.fg, bg: c.bg, border: c.border };
+}
 
 const FILTERS = [
   { key: 'all', label: '전체' },
@@ -20,7 +27,7 @@ const FILTERS = [
 ];
 
 function StatusBadge({ status }) {
-  const s = statusStyles[status];
+  const s = statusStyle(status);
   return (
     <span style={{
       display: 'inline-flex', alignItems: 'center', gap: '4px',

@@ -2,6 +2,7 @@ import { motion } from 'framer-motion';
 import { Calendar, Layers, ArrowRight } from 'lucide-react';
 import { MODE_MONTHLY, MODE_SHEET } from '../constants/steps';
 import { useWindowSize } from '../hooks/useWindowSize';
+import { GRADIENTS } from '../constants/colors';
 
 export default function LandingPage({ onSelectMode }) {
   const { isMobile } = useWindowSize();
@@ -13,7 +14,7 @@ export default function LandingPage({ onSelectMode }) {
       title: '월별 비교',
       desc: '한 시트 내의 월 또는 기간을 비교합니다. 단일 시트 파일이거나 월 단위 증감이 관심이라면 선택하세요.',
       example: '예) 2025년 3월 vs 2025년 4월',
-      gradient: 'linear-gradient(135deg, #3b82f6, #8b5cf6)',
+      gradient: GRADIENTS.primary,
       shadow: '0 8px 24px rgba(59,130,246,0.25)',
     },
     {
@@ -22,7 +23,7 @@ export default function LandingPage({ onSelectMode }) {
       title: '시트별 비교',
       desc: '시트마다 다른 연도의 데이터를 담은 파일을 업로드해 연도 간 비교를 수행합니다. 비교할 월은 체크박스로 직접 선택합니다.',
       example: '예) 2025년 1~2월 vs 2026년 1~2월',
-      gradient: 'linear-gradient(135deg, #f59e0b, #ef4444)',
+      gradient: GRADIENTS.warm,
       shadow: '0 8px 24px rgba(245,158,11,0.25)',
     },
   ];

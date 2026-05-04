@@ -5,6 +5,7 @@ import {
   detectDateColumn, detectAmountColumns,
   detectCategoryColumn, detectDescriptionColumn, detectVendorColumn
 } from '../utils/excel/detector';
+import { GRADIENTS } from '../constants/colors';
 
 const selectStyle = {
   width: '100%',
@@ -146,7 +147,7 @@ export default function ColumnMapper({ headers, onConfirm }) {
             border: 'none',
             cursor: canConfirm ? 'pointer' : 'not-allowed',
             background: canConfirm
-              ? 'linear-gradient(135deg, #8b5cf6, #3b82f6)'
+              ? GRADIENTS.primaryReverse
               : 'rgba(51,65,85,0.4)',
             color: canConfirm ? 'white' : '#64748b',
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',

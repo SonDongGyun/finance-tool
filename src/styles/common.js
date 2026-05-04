@@ -1,10 +1,10 @@
-import { COLORS } from '../constants/colors';
+import { COLORS, GRADIENTS } from '../constants/colors';
 
 export const selectStyle = {
   width: '100%',
   padding: '10px 14px',
   borderRadius: '8px',
-  background: 'rgba(30,41,59,0.8)',
+  background: COLORS.surfaceMid,
   border: `1px solid ${COLORS.border}`,
   fontSize: '14px',
   color: COLORS.text,
@@ -56,10 +56,8 @@ export function btnPrimary(enabled) {
     fontWeight: 600,
     border: 'none',
     cursor: enabled ? 'pointer' : 'not-allowed',
-    background: enabled
-      ? 'linear-gradient(135deg, #8b5cf6, #3b82f6)'
-      : COLORS.cardBgLight,
-    color: enabled ? 'white' : COLORS.dim,
+    background: enabled ? GRADIENTS.primaryReverse : COLORS.cardBgLight,
+    color: enabled ? COLORS.textHigh : COLORS.dim,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -72,8 +70,25 @@ export const btnSecondary = {
   borderRadius: '8px',
   fontSize: '13px',
   fontWeight: 600,
-  border: `1px solid rgba(100,116,139,0.2)`,
+  border: `1px solid ${COLORS.borderLight}`,
   background: 'rgba(15,23,42,0.4)',
   color: COLORS.sub,
   cursor: 'pointer',
+};
+
+// Pagination / list-action button (used by AnalysisSummary, VendorTable).
+export const listBtnStyle = {
+  padding: '10px 16px',
+  borderRadius: '8px',
+  fontSize: '13px',
+  fontWeight: 600,
+  flex: 1,
+  background: 'rgba(100,116,139,0.1)',
+  color: COLORS.sub,
+  border: '1px solid rgba(100,116,139,0.15)',
+  cursor: 'pointer',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  gap: '6px',
 };

@@ -2,34 +2,18 @@ import React, { useState, useMemo, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Building2, ChevronDown, ChevronUp, Search, X } from 'lucide-react';
 import { formatMoney, formatMonthLabel } from '../utils/formatters';
+import { smoothScrollTo } from '../utils/scroll';
+import { STATUS_COLORS } from '../constants/colors';
 import CategoryTabs from './CategoryTabs';
-
-function smoothScrollTo(ref) {
-  const el = ref?.current;
-  if (!el) return;
-  const targetY = el.getBoundingClientRect().top + window.scrollY - 20;
-  const startY = window.scrollY;
-  const diff = targetY - startY;
-  const duration = 600;
-  let start = null;
-  function step(timestamp) {
-    if (!start) start = timestamp;
-    const t = Math.min((timestamp - start) / duration, 1);
-    const ease = 1 - Math.pow(1 - t, 3);
-    window.scrollTo(0, startY + diff * ease);
-    if (t < 1) requestAnimationFrame(step);
-  }
-  requestAnimationFrame(step);
-}
 
 const DEFAULT_COUNT = 15;
 const PAGE_SIZE = 10;
 
-const statusLabels = {
-  new: { label: '신규', color: '#60a5fa', bg: 'rgba(59,130,246,0.12)' },
-  removed: { label: '제거', color: '#fb923c', bg: 'rgba(249,115,22,0.12)' },
-  increased: { label: '증가', color: '#f87171', bg: 'rgba(239,68,68,0.12)' },
-  decreased: { label: '감소', color: '#34d399', bg: 'rgba(16,185,129,0.12)' },
+const STATUS_LABEL = {
+  new: '신규',
+  removed: '제거',
+  increased: '증가',
+  decreased: '감소',
 };
 
 const STATUS_FILTERS = [
@@ -239,7 +223,7 @@ export default function VendorTable({ result }) {
             </thead>
             <tbody>
               {data.map((item, i) => {
-                const st = statusLabels[item.status];
+                const sc = STATUS_COLORS[item.status];
                 const rowKey = `${item.category}-${item.vendor}`;
                 const isExpanded = expandedRow === rowKey;
                 const colSpan = (selectedCategory === 'all' ? 1 : 0) + 6;
@@ -282,9 +266,9 @@ export default function VendorTable({ result }) {
                         <span style={{
                           display: 'inline-block', padding: '3px 10px', borderRadius: '20px',
                           fontSize: '11px', fontWeight: 600,
-                          color: st.color, background: st.bg,
+                          color: sc.fg, background: sc.bg,
                         }}>
-                          {st.label}
+                          {STATUS_LABEL[item.status]}
                         </span>
                       </td>
                       <td style={{ ...tdStyle, textAlign: 'center' }}>

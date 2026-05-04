@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import { Layers, ArrowRight, AlertTriangle } from 'lucide-react';
+import { GRADIENTS } from '../constants/colors';
 
 const selectStyle = {
   padding: '10px 14px',
@@ -43,7 +44,7 @@ function MonthChips({ months, checked, onToggle }) {
               border: isOn ? '1px solid rgba(96,165,250,0.6)' : '1px solid rgba(100,116,139,0.3)',
               cursor: 'pointer',
               background: isOn
-                ? 'linear-gradient(135deg, rgba(59,130,246,0.35), rgba(139,92,246,0.35))'
+                ? GRADIENTS.primarySoft
                 : 'rgba(30,41,59,0.6)',
               color: isOn ? '#e0e7ff' : '#cbd5e1',
               transition: 'all 0.15s',
@@ -241,7 +242,7 @@ export default function SheetComparator({ sheets, side1, side2, onSide1Change, o
             border: 'none',
             cursor: canAnalyze ? 'pointer' : 'not-allowed',
             background: canAnalyze
-              ? 'linear-gradient(135deg, #3b82f6, #8b5cf6)'
+              ? GRADIENTS.primary
               : 'rgba(51,65,85,0.4)',
             color: canAnalyze ? 'white' : '#64748b',
           }}
