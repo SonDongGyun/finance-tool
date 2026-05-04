@@ -1,15 +1,26 @@
 import { parseDate, parseAmount } from './parser';
 import { buildRangeKey } from '../formatters';
 import { UNCATEGORIZED, UNKNOWN_VENDOR } from '../../constants/defaults';
+import type {
+  AnalysisEntry,
+  AnalysisResult,
+  AnalyzeMonthlyConfig,
+  CategoryComparison,
+  ColumnConfig,
+  ParsedRow,
+  SheetInfo,
+  Status,
+  VendorComparison,
+} from '../../types';
 
 // UTC-based to align with parseDate, which normalizes all inputs to UTC midnight.
 // Mixing local/UTC here was misclassifying month-boundary rows by one month.
-function monthKeyOf(date) {
+function monthKeyOf(date: Date): string {
   return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}`;
 }
 
-export function extractMonths(rows, dateColumn) {
-  const months = new Set();
+export function extractMonths(rows: ParsedRow[], dateColumn: string): string[] {
+  const months = new Set<string>();
   rows.forEach(row => {
     const d = parseDate(row[dateColumn]);
     if (d) months.add(monthKeyOf(d));
@@ -17,11 +28,14 @@ export function extractMonths(rows, dateColumn) {
   return Array.from(months).sort();
 }
 
-export function analyzeSheets(rowsBySheet, dateColumn) {
-  const sheets = [];
+export function analyzeSheets(
+  rowsBySheet: Record<string, ParsedRow[]>,
+  dateColumn: string,
+): SheetInfo[] {
+  const sheets: SheetInfo[] = [];
   Object.entries(rowsBySheet).forEach(([name, rows]) => {
-    const yearCount = {};
-    const months = new Set();
+    const yearCount: Record<number, number> = {};
+    const months = new Set<string>();
     rows.forEach(row => {
       const d = parseDate(row[dateColumn]);
       if (!d) return;
@@ -30,7 +44,7 @@ export function analyzeSheets(rowsBySheet, dateColumn) {
       months.add(monthKeyOf(d));
     });
 
-    let dominantYear = null;
+    let dominantYear: number | null = null;
     let maxCount = 0;
     Object.entries(yearCount).forEach(([y, c]) => {
       if (c > maxCount) {
@@ -56,26 +70,26 @@ export function analyzeSheets(rowsBySheet, dateColumn) {
   return sheets;
 }
 
-function resolveMonths(config, side) {
-  const arr = config[`months${side}`];
+function resolveMonths(config: AnalyzeMonthlyConfig, side: 1 | 2): string[] {
+  const arr = config[`months${side}` as const];
   if (Array.isArray(arr) && arr.length > 0) return arr;
-  const single = config[`month${side}`];
+  const single = config[`month${side}` as const];
   return single ? [single] : [];
 }
 
-function labelFromMonths(months) {
+function labelFromMonths(months: string[]): string {
   if (months.length === 0) return '';
   if (months.length === 1) return months[0];
   const sorted = [...months].sort();
   return buildRangeKey(sorted[0], sorted[sorted.length - 1]);
 }
 
-function buildEntry(row, date, config) {
+function buildEntry(row: ParsedRow, date: Date, config: ColumnConfig): AnalysisEntry {
   const { amountColumns, categoryColumn, descriptionColumn, vendorColumn } = config;
 
   const amount = amountColumns.debit
-    ? parseAmount(row[amountColumns.debit]) - parseAmount(row[amountColumns.credit])
-    : parseAmount(row[amountColumns.amount]);
+    ? parseAmount(row[amountColumns.debit]) - parseAmount(row[amountColumns.credit ?? ''])
+    : parseAmount(row[amountColumns.amount ?? '']);
 
   const rawCategory = categoryColumn ? String(row[categoryColumn] ?? '').trim() : '';
   const rawDescription = descriptionColumn ? String(row[descriptionColumn] ?? '').trim() : '';
@@ -91,10 +105,25 @@ function buildEntry(row, date, config) {
   };
 }
 
+interface PreparedEntries {
+  entries: AnalysisEntry[];
+  skipped: number;
+}
+
+interface PreparedEntriesPair {
+  entries1: AnalysisEntry[];
+  entries2: AnalysisEntry[];
+  skipped: number;
+}
+
 // Prepare entries from rows: filters by allowed months, parses fields, counts skipped (unparseable date) rows.
-function prepareEntries(rows, config, allowedMonths) {
+function prepareEntries(
+  rows: ParsedRow[],
+  config: ColumnConfig,
+  allowedMonths: string[],
+): PreparedEntries {
   const monthSet = new Set(allowedMonths);
-  const entries = [];
+  const entries: AnalysisEntry[] = [];
   let skipped = 0;
 
   rows.forEach(row => {
@@ -114,11 +143,16 @@ function prepareEntries(rows, config, allowedMonths) {
 // The two month sets are disjoint by UI guard (monthRangesOverlap check), so each
 // matching row goes to at most one bucket — but we keep the dual-bucket assignment
 // defensive in case that guard is bypassed.
-function prepareEntriesPair(rows, config, months1, months2) {
+function prepareEntriesPair(
+  rows: ParsedRow[],
+  config: ColumnConfig,
+  months1: string[],
+  months2: string[],
+): PreparedEntriesPair {
   const set1 = new Set(months1);
   const set2 = new Set(months2);
-  const entries1 = [];
-  const entries2 = [];
+  const entries1: AnalysisEntry[] = [];
+  const entries2: AnalysisEntry[] = [];
   let skipped = 0;
 
   rows.forEach(row => {
@@ -141,14 +175,27 @@ function prepareEntriesPair(rows, config, months1, months2) {
 
 // Uses |prev| as denominator so negative-prev categories (e.g. refunds) yield
 // a sensible signed percentage instead of always 0/100.
-function pctChangeOf(prev, curr) {
+function pctChangeOf(prev: number, curr: number): number {
   const diff = curr - prev;
   if (prev === 0) return curr === 0 ? 0 : (curr > 0 ? 100 : -100);
   return Math.round((diff / Math.abs(prev)) * 1000) / 10;
 }
 
-function aggregateByCategory(entries) {
-  const map = {};
+interface CategoryAggregate {
+  total: number;
+  items: AnalysisEntry[];
+}
+
+interface VendorAggregate {
+  total: number;
+  count: number;
+  category: string;
+  vendor: string;
+  items: AnalysisEntry[];
+}
+
+function aggregateByCategory(entries: AnalysisEntry[]): Record<string, CategoryAggregate> {
+  const map: Record<string, CategoryAggregate> = {};
   entries.forEach(e => {
     if (!map[e._category]) map[e._category] = { total: 0, items: [] };
     map[e._category].total += e._amount;
@@ -157,8 +204,8 @@ function aggregateByCategory(entries) {
   return map;
 }
 
-function aggregateByVendor(entries) {
-  const map = {};
+function aggregateByVendor(entries: AnalysisEntry[]): Record<string, VendorAggregate> {
+  const map: Record<string, VendorAggregate> = {};
   entries.forEach(e => {
     const vendor = e._vendor || e._description || UNKNOWN_VENDOR;
     const category = e._category || UNCATEGORIZED;
@@ -171,7 +218,17 @@ function aggregateByVendor(entries) {
   return map;
 }
 
-function compareEntries({ entries1, entries2, months1, months2, skipped }) {
+interface CompareEntriesArgs {
+  entries1: AnalysisEntry[];
+  entries2: AnalysisEntry[];
+  months1: string[];
+  months2: string[];
+  skipped: number;
+}
+
+function compareEntries({
+  entries1, entries2, months1, months2, skipped,
+}: CompareEntriesArgs): AnalysisResult {
   const label1 = labelFromMonths(months1);
   const label2 = labelFromMonths(months2);
 
@@ -179,13 +236,13 @@ function compareEntries({ entries1, entries2, months1, months2, skipped }) {
   const m2Categories = aggregateByCategory(entries2);
 
   const allCategories = new Set([...Object.keys(m1Categories), ...Object.keys(m2Categories)]);
-  const categoryComparison = [];
+  const categoryComparison: CategoryComparison[] = [];
   allCategories.forEach(cat => {
     const prev = m1Categories[cat]?.total || 0;
     const curr = m2Categories[cat]?.total || 0;
     const diff = curr - prev;
 
-    let status;
+    let status: Status;
     if (prev === 0 && curr !== 0) status = 'new';
     else if (prev !== 0 && curr === 0) status = 'removed';
     else if (diff > 0) status = 'increased';
@@ -209,14 +266,14 @@ function compareEntries({ entries1, entries2, months1, months2, skipped }) {
   const m2Vendors = aggregateByVendor(entries2);
 
   const allVendorKeys = new Set([...Object.keys(m1Vendors), ...Object.keys(m2Vendors)]);
-  const vendorComparison = [];
+  const vendorComparison: VendorComparison[] = [];
   allVendorKeys.forEach(key => {
     const prev = m1Vendors[key]?.total || 0;
     const curr = m2Vendors[key]?.total || 0;
     const diff = curr - prev;
     const info = m1Vendors[key] || m2Vendors[key];
 
-    let status;
+    let status: Status;
     if (prev === 0 && curr !== 0) status = 'new';
     else if (prev !== 0 && curr === 0) status = 'removed';
     else if (diff > 0) status = 'increased';
@@ -261,7 +318,10 @@ function compareEntries({ entries1, entries2, months1, months2, skipped }) {
 }
 
 // Monthly mode: single source of rows, partitioned by month keys in one pass.
-export function analyzeMonthlyChanges(rows, config) {
+export function analyzeMonthlyChanges(
+  rows: ParsedRow[],
+  config: AnalyzeMonthlyConfig,
+): AnalysisResult {
   const months1 = resolveMonths(config, 1);
   const months2 = resolveMonths(config, 2);
   const { entries1, entries2, skipped } = prepareEntriesPair(rows, config, months1, months2);
@@ -269,7 +329,13 @@ export function analyzeMonthlyChanges(rows, config) {
 }
 
 // Sheet mode: rows already partitioned by source sheet, then filtered by months per side.
-export function analyzeSheetComparison(rows1, rows2, config, months1, months2) {
+export function analyzeSheetComparison(
+  rows1: ParsedRow[],
+  rows2: ParsedRow[],
+  config: ColumnConfig,
+  months1: string[],
+  months2: string[],
+): AnalysisResult {
   const { entries: entries1, skipped: skipped1 } = prepareEntries(rows1, config, months1);
   const { entries: entries2, skipped: skipped2 } = prepareEntries(rows2, config, months2);
   return compareEntries({

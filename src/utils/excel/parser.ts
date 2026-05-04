@@ -1,23 +1,34 @@
 import * as XLSX from 'xlsx';
+import type { ParsedFile, ParsedRow } from '../../types';
 
-export function parseWorkbook(workbook) {
+// Plain Error subclass so callers can `if (err instanceof EncryptedFileError)`
+// or check `err.encrypted` without losing the stack.
+export class EncryptedFileError extends Error {
+  encrypted = true as const;
+  constructor(message = '암호가 설정된 엑셀 파일입니다.') {
+    super(message);
+    this.name = 'EncryptedFileError';
+  }
+}
+
+export function parseWorkbook(workbook: XLSX.WorkBook): ParsedFile {
   const sheetNames = workbook.SheetNames || [];
   if (sheetNames.length === 0) {
     throw new Error('엑셀 파일에 시트가 없습니다.');
   }
 
-  const allRows = [];
-  const rowsBySheet = {};
-  const nonEmptySheets = [];
-  let headers = null;
+  const allRows: ParsedRow[] = [];
+  const rowsBySheet: Record<string, ParsedRow[]> = {};
+  const nonEmptySheets: string[] = [];
+  let headers: string[] | null = null;
 
   sheetNames.forEach(name => {
     const ws = workbook.Sheets[name];
     if (!ws) return;
-    const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+    const rows = XLSX.utils.sheet_to_json<ParsedRow>(ws, { defval: '' });
     if (rows.length === 0) return;
     if (!headers) headers = Object.keys(rows[0]);
-    const tagged = rows.map(r => ({ ...r, _sheet: name }));
+    const tagged: ParsedRow[] = rows.map(r => ({ ...r, _sheet: name }));
     rowsBySheet[name] = tagged;
     nonEmptySheets.push(name);
     tagged.forEach(r => allRows.push(r));
@@ -30,27 +41,30 @@ export function parseWorkbook(workbook) {
   return {
     sheetName: nonEmptySheets.join(', '),
     sheetNames: nonEmptySheets,
-    headers,
+    headers: headers ?? [],
     rows: allRows,
     rowsBySheet,
     totalRows: allRows.length,
   };
 }
 
-export function parseExcelFile(file) {
+export function parseExcelFile(file: File): Promise<ParsedFile> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
-        const data = new Uint8Array(e.target.result);
+        const result = e.target?.result;
+        if (!(result instanceof ArrayBuffer)) {
+          reject(new Error('파일을 읽을 수 없습니다.'));
+          return;
+        }
+        const data = new Uint8Array(result);
         const workbook = XLSX.read(data, { type: 'array' });
         resolve(parseWorkbook(workbook));
       } catch (err) {
-        const msg = err.message || '';
+        const msg = err instanceof Error ? err.message : '';
         if (msg.includes('password') || msg.includes('encrypt') || msg.includes('cfb') || msg.includes('Unsupported')) {
-          const e = new Error('암호가 설정된 엑셀 파일입니다.');
-          e.encrypted = true;
-          reject(e);
+          reject(new EncryptedFileError());
         } else {
           reject(new Error('엑셀 파일 파싱 중 오류가 발생했습니다: ' + msg));
         }
@@ -67,7 +81,7 @@ const EXCEL_EPOCH_MS = Date.UTC(1899, 11, 30);
 const EXCEL_SERIAL_MIN = 1;
 const EXCEL_SERIAL_MAX = 73000;
 
-export function parseDate(val) {
+export function parseDate(val: unknown): Date | null {
   if (val === null || val === undefined || val === '') return null;
 
   // Native Date object straight from XLSX cellDates option (not used here, but defensive).
@@ -98,11 +112,11 @@ export function parseDate(val) {
   return toUtcMidnight(d);
 }
 
-function toUtcMidnight(d) {
+function toUtcMidnight(d: Date): Date {
   return new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
 }
 
-export function parseAmount(val) {
+export function parseAmount(val: unknown): number {
   if (val === '' || val === null || val === undefined) return 0;
   if (typeof val === 'number') return Number.isFinite(val) ? val : 0;
 
