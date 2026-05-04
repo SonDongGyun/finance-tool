@@ -1,20 +1,14 @@
 import React, { useState, useMemo, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Building2, ChevronDown, ChevronUp, Search, X } from 'lucide-react';
+import { Building2, ChevronDown, ChevronUp } from 'lucide-react';
 import { formatMoney, formatMonthLabel } from '../utils/formatters';
 import { smoothScrollTo } from '../utils/scroll';
-import { STATUS_COLORS } from '../constants/colors';
 import CategoryTabs from './CategoryTabs';
+import StatusBadge from './StatusBadge';
+import SearchInput from './SearchInput';
 
 const DEFAULT_COUNT = 15;
 const PAGE_SIZE = 10;
-
-const STATUS_LABEL = {
-  new: '신규',
-  removed: '제거',
-  increased: '증가',
-  decreased: '감소',
-};
 
 const STATUS_FILTERS = [
   { key: 'all', label: '전체' },
@@ -124,39 +118,16 @@ export default function VendorTable({ result }) {
             <span style={{ fontSize: '12px', color: '#64748b' }}>({filtered.length}건)</span>
           </div>
 
-          <div style={{ position: 'relative' }}>
-            <Search style={{ width: '16px', height: '16px', position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#64748b' }} />
-            <input
-              type="text"
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') { setSearchTerm(searchInput); setVisibleCount(DEFAULT_COUNT); }
-              }}
-              placeholder="거래처 검색 (Enter)"
-              aria-label="거래처 검색 (엔터로 적용)"
-              style={{
-                paddingLeft: '36px', paddingRight: searchTerm ? '36px' : '16px', paddingTop: '10px', paddingBottom: '10px',
-                borderRadius: '8px', background: 'rgba(15,23,42,0.6)',
-                border: searchTerm ? '1px solid rgba(96,165,250,0.4)' : '1px solid rgba(100,116,139,0.3)',
-                fontSize: '14px', color: '#e2e8f0', outline: 'none', width: '220px',
-              }}
-            />
-            {searchTerm && (
-              <button
-                onClick={() => { setSearchInput(''); setSearchTerm(''); setVisibleCount(DEFAULT_COUNT); }}
-                aria-label="검색어 지우기"
-                style={{
-                  position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)',
-                  background: 'rgba(100,116,139,0.3)', border: 'none', borderRadius: '50%',
-                  width: '20px', height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  cursor: 'pointer', padding: 0,
-                }}
-              >
-                <X style={{ width: '12px', height: '12px', color: '#cbd5e1' }} />
-              </button>
-            )}
-          </div>
+          <SearchInput
+            value={searchInput}
+            onChange={setSearchInput}
+            onSubmit={() => { setSearchTerm(searchInput); setVisibleCount(DEFAULT_COUNT); }}
+            term={searchTerm}
+            onClear={() => { setSearchInput(''); setSearchTerm(''); setVisibleCount(DEFAULT_COUNT); }}
+            placeholder="거래처 검색 (Enter)"
+            ariaLabel="거래처 검색 (엔터로 적용)"
+            width={220}
+          />
         </div>
 
         {/* Category Tabs */}
@@ -223,7 +194,6 @@ export default function VendorTable({ result }) {
             </thead>
             <tbody>
               {data.map((item, i) => {
-                const sc = STATUS_COLORS[item.status];
                 const rowKey = `${item.category}-${item.vendor}`;
                 const isExpanded = expandedRow === rowKey;
                 const colSpan = (selectedCategory === 'all' ? 1 : 0) + 6;
@@ -263,13 +233,7 @@ export default function VendorTable({ result }) {
                         {item.diff > 0 ? '+' : ''}{formatMoney(item.diff)}원
                       </td>
                       <td style={{ ...tdStyle, textAlign: 'center' }}>
-                        <span style={{
-                          display: 'inline-block', padding: '3px 10px', borderRadius: '20px',
-                          fontSize: '11px', fontWeight: 600,
-                          color: sc.fg, background: sc.bg,
-                        }}>
-                          {STATUS_LABEL[item.status]}
-                        </span>
+                        <StatusBadge status={item.status} variant="compact" />
                       </td>
                       <td style={{ ...tdStyle, textAlign: 'center' }}>
                         <ChevronDown style={{

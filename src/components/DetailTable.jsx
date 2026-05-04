@@ -1,22 +1,9 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronDown, ChevronUp, Filter, ArrowUpRight, ArrowDownRight, Plus, Minus, Search, X } from 'lucide-react';
+import { ChevronDown, ChevronUp, Filter } from 'lucide-react';
 import { formatMoney, formatMonthLabel } from '../utils/formatters';
-import { STATUS_COLORS } from '../constants/colors';
-
-const STATUS_META = {
-  new:       { label: '신규', Icon: Plus },
-  removed:   { label: '제거', Icon: Minus },
-  increased: { label: '증가', Icon: ArrowUpRight },
-  decreased: { label: '감소', Icon: ArrowDownRight },
-  unchanged: { label: '동일', Icon: null },
-};
-
-function statusStyle(status) {
-  const c = STATUS_COLORS[status];
-  const m = STATUS_META[status];
-  return { ...m, color: c.fg, bg: c.bg, border: c.border };
-}
+import StatusBadge from './StatusBadge';
+import SearchInput from './SearchInput';
 
 const FILTERS = [
   { key: 'all', label: '전체' },
@@ -25,21 +12,6 @@ const FILTERS = [
   { key: 'increased', label: '증가' },
   { key: 'decreased', label: '감소' },
 ];
-
-function StatusBadge({ status }) {
-  const s = statusStyle(status);
-  return (
-    <span style={{
-      display: 'inline-flex', alignItems: 'center', gap: '4px',
-      padding: '3px 10px', borderRadius: '20px',
-      fontSize: '12px', fontWeight: 600,
-      color: s.color, background: s.bg, border: `1px solid ${s.border}`,
-    }}>
-      {s.Icon && <s.Icon style={{ width: '12px', height: '12px' }} />}
-      {s.label}
-    </span>
-  );
-}
 
 function ExpandedRow({ item, result }) {
   return (
@@ -148,37 +120,15 @@ export default function DetailTable({ result }) {
             <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#e2e8f0' }}>카테고리별 증감 상세</h3>
           </div>
 
-          <div style={{ position: 'relative' }}>
-            <Search style={{ width: '16px', height: '16px', position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#64748b' }} />
-            <input
-              type="text"
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') setSearchTerm(searchInput); }}
-              placeholder="카테고리 검색 (Enter)"
-              aria-label="카테고리 검색 (엔터로 적용)"
-              style={{
-                paddingLeft: '36px', paddingRight: searchTerm ? '36px' : '16px', paddingTop: '10px', paddingBottom: '10px',
-                borderRadius: '8px', background: 'rgba(15,23,42,0.6)',
-                border: searchTerm ? '1px solid rgba(96,165,250,0.4)' : '1px solid rgba(100,116,139,0.3)',
-                fontSize: '14px', color: '#e2e8f0', outline: 'none', width: '260px',
-              }}
-            />
-            {searchTerm && (
-              <button
-                onClick={() => { setSearchInput(''); setSearchTerm(''); }}
-                aria-label="검색어 지우기"
-                style={{
-                  position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)',
-                  background: 'rgba(100,116,139,0.3)', border: 'none', borderRadius: '50%',
-                  width: '20px', height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  cursor: 'pointer', padding: 0,
-                }}
-              >
-                <X style={{ width: '12px', height: '12px', color: '#cbd5e1' }} />
-              </button>
-            )}
-          </div>
+          <SearchInput
+            value={searchInput}
+            onChange={setSearchInput}
+            onSubmit={() => setSearchTerm(searchInput)}
+            term={searchTerm}
+            onClear={() => { setSearchInput(''); setSearchTerm(''); }}
+            placeholder="카테고리 검색 (Enter)"
+            ariaLabel="카테고리 검색 (엔터로 적용)"
+          />
         </div>
 
         {/* Filters */}
