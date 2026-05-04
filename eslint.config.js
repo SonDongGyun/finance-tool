@@ -26,7 +26,11 @@ export default defineConfig([
     },
     settings: { react: { version: 'detect' } },
     rules: {
-      'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
+      'no-unused-vars': ['error', {
+        varsIgnorePattern: '^[A-Z_]',
+        argsIgnorePattern: '^_',
+        caughtErrorsIgnorePattern: '^_',
+      }],
       'react/jsx-uses-react': 'error',
       'react/jsx-uses-vars': 'error',
     },

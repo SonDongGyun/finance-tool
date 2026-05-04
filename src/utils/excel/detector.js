@@ -16,7 +16,9 @@ export function detectAmountColumns(headers) {
 }
 
 export function detectCategoryColumn(headers) {
-  const keywords = ['계정', '과목', '항목', 'category', 'account', '적요', '비목'];
+  // '적요' belongs to description detection, not category — including it here
+  // caused the same column to be auto-selected for both fields.
+  const keywords = ['계정', '과목', '항목', 'category', 'account', '비목'];
   return headers.find(h => keywords.some(k => h.toLowerCase().includes(k))) || null;
 }
 

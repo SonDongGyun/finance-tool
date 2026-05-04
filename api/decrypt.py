@@ -2,6 +2,8 @@ from http.server import BaseHTTPRequestHandler
 import json
 import base64
 import io
+import sys
+import traceback
 
 # NOTE: Rate limiting is handled at the Vercel infrastructure level.
 # For additional protection, consider configuring Vercel's rate limiting
@@ -92,8 +94,11 @@ class handler(BaseHTTPRequestHandler):
         except msoffcrypto.exceptions.DecryptionError:
             self._send_json_error(401, '암호가 올바르지 않습니다. 다시 확인해주세요.')
 
-        except Exception as e:
-            self._send_json_error(500, f'복호화 중 오류가 발생했습니다: {str(e)}')
+        except Exception:
+            # Log full trace server-side; return a generic message to the client
+            # so internal paths/library details don't leak.
+            traceback.print_exc(file=sys.stderr)
+            self._send_json_error(500, '복호화 중 오류가 발생했습니다. 파일이 손상되었거나 지원되지 않는 형식일 수 있습니다.')
 
     def do_OPTIONS(self):
         self.send_response(200)

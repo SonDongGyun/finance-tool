@@ -44,7 +44,7 @@ function buildCategorySummary(result) {
   });
 }
 
-export function exportPptx(result) {
+export async function exportPptx(result) {
   const pptx = new PptxGenJS();
   pptx.layout = 'LAYOUT_WIDE';
   pptx.author = '다비치 재무팀';
@@ -280,5 +280,5 @@ export function exportPptx(result) {
     addSlideNumber(slide, i + 1, allSlides.length);
   });
 
-  pptx.writeFile({ fileName: `분석보고서_${result.month1.label}_vs_${result.month2.label}.pptx` });
+  await pptx.writeFile({ fileName: `분석보고서_${result.month1.label}_vs_${result.month2.label}.pptx` });
 }

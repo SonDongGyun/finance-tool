@@ -31,7 +31,7 @@ export default function ExportButtons({ result }) {
     setError(null);
     try {
       const { exportPptx } = await import('../utils/exportPptx');
-      exportPptx(result);
+      await exportPptx(result);
     } catch (err) {
       console.error('PPTX export failed:', err);
       setError('PPTX 내보내기에 실패했습니다. 다시 시도해주세요.');

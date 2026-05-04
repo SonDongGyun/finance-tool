@@ -1,30 +1,39 @@
 import { motion } from 'framer-motion';
 import { TrendingUp, TrendingDown, Plus, Minus, ArrowUpRight, ArrowDownRight, Equal, AlertTriangle } from 'lucide-react';
 import { formatMoney, formatMonthLabel } from '../utils/formatters';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
+const ANIMATION_DURATION_MS = 1500;
+
+// Animates from the currently displayed value to the new target on each prop change,
+// using requestAnimationFrame so cleanup cancels in-flight frames cleanly.
 function AnimatedNumber({ value, prefix = '', suffix = '' }) {
   const [display, setDisplay] = useState(0);
+  const startRef = useRef(0);
 
   useEffect(() => {
-    const duration = 1500;
-    const steps = 60;
-    const increment = value / steps;
-    let current = 0;
-    let step = 0;
+    if (value === startRef.current) return;
+    const startValue = startRef.current;
+    const targetValue = value;
+    let startTime = null;
+    let frameId = null;
 
-    const timer = setInterval(() => {
-      step++;
-      current += increment;
-      if (step >= steps) {
-        setDisplay(value);
-        clearInterval(timer);
-      } else {
-        setDisplay(Math.round(current));
-      }
-    }, duration / steps);
+    const tick = (timestamp) => {
+      if (startTime === null) startTime = timestamp;
+      const t = Math.min((timestamp - startTime) / ANIMATION_DURATION_MS, 1);
+      const eased = 1 - Math.pow(1 - t, 3);
+      const next = t < 1
+        ? Math.round(startValue + (targetValue - startValue) * eased)
+        : targetValue;
+      startRef.current = next;
+      setDisplay(next);
+      if (t < 1) frameId = requestAnimationFrame(tick);
+    };
 
-    return () => clearInterval(timer);
+    frameId = requestAnimationFrame(tick);
+    return () => {
+      if (frameId !== null) cancelAnimationFrame(frameId);
+    };
   }, [value]);
 
   return <span>{prefix}{formatMoney(display)}{suffix}</span>;

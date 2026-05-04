@@ -48,7 +48,9 @@ export function parseExcelFile(file) {
       } catch (err) {
         const msg = err.message || '';
         if (msg.includes('password') || msg.includes('encrypt') || msg.includes('cfb') || msg.includes('Unsupported')) {
-          reject({ encrypted: true, message: '암호가 설정된 엑셀 파일입니다.' });
+          const e = new Error('암호가 설정된 엑셀 파일입니다.');
+          e.encrypted = true;
+          reject(e);
         } else {
           reject(new Error('엑셀 파일 파싱 중 오류가 발생했습니다: ' + msg));
         }
@@ -59,25 +61,45 @@ export function parseExcelFile(file) {
   });
 }
 
+// Excel serial date epoch: 1899-12-30 (accounts for Lotus 1900 leap-year bug).
+// 73000 ≈ 2099-12; clamps out 8-digit numbers like 20240101 from being misread.
+const EXCEL_EPOCH_MS = Date.UTC(1899, 11, 30);
+const EXCEL_SERIAL_MIN = 1;
+const EXCEL_SERIAL_MAX = 73000;
+
 export function parseDate(val) {
-  if (!val) return null;
+  if (val === null || val === undefined || val === '') return null;
+
+  // Native Date object straight from XLSX cellDates option (not used here, but defensive).
+  if (val instanceof Date) {
+    return isNaN(val.getTime()) ? null : toUtcMidnight(val);
+  }
+
   const str = String(val).trim();
+  if (str === '') return null;
 
-  // Handle Excel serial date numbers
-  if (/^\d{5}$/.test(str)) {
-    const date = new Date((Number(str) - 25569) * 86400 * 1000);
-    return date;
+  // Excel serial number (integer or decimal). Restricted to a sensible range.
+  if (/^\d{1,6}(\.\d+)?$/.test(str)) {
+    const num = Number(str);
+    if (num >= EXCEL_SERIAL_MIN && num <= EXCEL_SERIAL_MAX) {
+      return new Date(EXCEL_EPOCH_MS + num * 86400 * 1000);
+    }
   }
 
-  // YYYY/MM/DD or YYYY-MM-DD
-  const match = str.match(/(\d{4})[/\-.](\d{1,2})[/\-.](\d{1,2})/);
+  // YYYY/MM/DD, YYYY-MM-DD, YYYY.MM.DD — interpret as UTC to align with monthKeyOf.
+  const match = str.match(/^(\d{4})[/\-.](\d{1,2})[/\-.](\d{1,2})/);
   if (match) {
-    return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+    return new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])));
   }
 
-  // Try native parse
+  // Native parse fallback — normalize to UTC midnight of the parsed local date.
   const d = new Date(str);
-  return isNaN(d.getTime()) ? null : d;
+  if (isNaN(d.getTime())) return null;
+  return toUtcMidnight(d);
+}
+
+function toUtcMidnight(d) {
+  return new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
 }
 
 export function parseAmount(val) {

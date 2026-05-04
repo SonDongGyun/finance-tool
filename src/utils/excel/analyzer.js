@@ -2,8 +2,10 @@ import { parseDate, parseAmount } from './parser';
 import { buildRangeKey } from '../formatters';
 import { UNCATEGORIZED, UNKNOWN_VENDOR } from '../../constants/defaults';
 
+// UTC-based to align with parseDate, which normalizes all inputs to UTC midnight.
+// Mixing local/UTC here was misclassifying month-boundary rows by one month.
 function monthKeyOf(date) {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}`;
 }
 
 export function extractMonths(rows, dateColumn) {
@@ -23,7 +25,7 @@ export function analyzeSheets(rowsBySheet, dateColumn) {
     rows.forEach(row => {
       const d = parseDate(row[dateColumn]);
       if (!d) return;
-      const y = d.getFullYear();
+      const y = d.getUTCFullYear();
       yearCount[y] = (yearCount[y] || 0) + 1;
       months.add(monthKeyOf(d));
     });
@@ -108,6 +110,43 @@ function prepareEntries(rows, config, allowedMonths) {
   return { entries, skipped };
 }
 
+// Single-pass variant for the monthly mode where both sides share the same rows.
+// The two month sets are disjoint by UI guard (monthRangesOverlap check), so each
+// matching row goes to at most one bucket — but we keep the dual-bucket assignment
+// defensive in case that guard is bypassed.
+function prepareEntriesPair(rows, config, months1, months2) {
+  const set1 = new Set(months1);
+  const set2 = new Set(months2);
+  const entries1 = [];
+  const entries2 = [];
+  let skipped = 0;
+
+  rows.forEach(row => {
+    const d = parseDate(row[config.dateColumn]);
+    if (!d) {
+      skipped++;
+      return;
+    }
+    const key = monthKeyOf(d);
+    const in1 = set1.has(key);
+    const in2 = set2.has(key);
+    if (!in1 && !in2) return;
+    const entry = buildEntry(row, d, config);
+    if (in1) entries1.push(entry);
+    if (in2) entries2.push(entry);
+  });
+
+  return { entries1, entries2, skipped };
+}
+
+// Uses |prev| as denominator so negative-prev categories (e.g. refunds) yield
+// a sensible signed percentage instead of always 0/100.
+function pctChangeOf(prev, curr) {
+  const diff = curr - prev;
+  if (prev === 0) return curr === 0 ? 0 : (curr > 0 ? 100 : -100);
+  return Math.round((diff / Math.abs(prev)) * 1000) / 10;
+}
+
 function aggregateByCategory(entries) {
   const map = {};
   entries.forEach(e => {
@@ -145,11 +184,10 @@ function compareEntries({ entries1, entries2, months1, months2, skipped }) {
     const prev = m1Categories[cat]?.total || 0;
     const curr = m2Categories[cat]?.total || 0;
     const diff = curr - prev;
-    const pctChange = prev > 0 ? ((diff / prev) * 100) : (curr > 0 ? 100 : 0);
 
     let status;
-    if (prev === 0 && curr > 0) status = 'new';
-    else if (prev > 0 && curr === 0) status = 'removed';
+    if (prev === 0 && curr !== 0) status = 'new';
+    else if (prev !== 0 && curr === 0) status = 'removed';
     else if (diff > 0) status = 'increased';
     else if (diff < 0) status = 'decreased';
     else status = 'unchanged';
@@ -159,7 +197,7 @@ function compareEntries({ entries1, entries2, months1, months2, skipped }) {
       prevAmount: prev,
       currAmount: curr,
       diff,
-      pctChange: Math.round(pctChange * 10) / 10,
+      pctChange: pctChangeOf(prev, curr),
       status,
       prevItems: m1Categories[cat]?.items || [],
       currItems: m2Categories[cat]?.items || [],
@@ -179,9 +217,10 @@ function compareEntries({ entries1, entries2, months1, months2, skipped }) {
     const info = m1Vendors[key] || m2Vendors[key];
 
     let status;
-    if (prev === 0 && curr > 0) status = 'new';
-    else if (prev > 0 && curr === 0) status = 'removed';
-    else if (Math.abs(diff) > 0) status = diff > 0 ? 'increased' : 'decreased';
+    if (prev === 0 && curr !== 0) status = 'new';
+    else if (prev !== 0 && curr === 0) status = 'removed';
+    else if (diff > 0) status = 'increased';
+    else if (diff < 0) status = 'decreased';
     else status = 'unchanged';
 
     if (status !== 'unchanged') {
@@ -210,7 +249,7 @@ function compareEntries({ entries1, entries2, months1, months2, skipped }) {
     month1: { label: label1, total: m1Total, count: entries1.length, months: months1 },
     month2: { label: label2, total: m2Total, count: entries2.length, months: months2 },
     totalDiff: m2Total - m1Total,
-    totalPctChange: m1Total > 0 ? Math.round(((m2Total - m1Total) / m1Total) * 1000) / 10 : 0,
+    totalPctChange: pctChangeOf(m1Total, m2Total),
     categoryComparison,
     vendorComparison,
     newItems: categoryComparison.filter(c => c.status === 'new'),
@@ -221,14 +260,11 @@ function compareEntries({ entries1, entries2, months1, months2, skipped }) {
   };
 }
 
-// Monthly mode: single source of rows, partitioned by month keys.
-// Same rows are scanned twice (once per side); skipped (unparseable date) count is identical
-// for both passes, so we keep only the first to avoid double-counting.
+// Monthly mode: single source of rows, partitioned by month keys in one pass.
 export function analyzeMonthlyChanges(rows, config) {
   const months1 = resolveMonths(config, 1);
   const months2 = resolveMonths(config, 2);
-  const { entries: entries1, skipped } = prepareEntries(rows, config, months1);
-  const { entries: entries2 } = prepareEntries(rows, config, months2);
+  const { entries1, entries2, skipped } = prepareEntriesPair(rows, config, months1, months2);
   return compareEntries({ entries1, entries2, months1, months2, skipped });
 }
 
