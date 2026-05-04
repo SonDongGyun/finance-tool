@@ -3,6 +3,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Upload, FileSpreadsheet, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 import { useWindowSize } from '../hooks/useWindowSize';
 
+// Mirrors the server-side cap in api/decrypt.py — fail fast in the browser
+// instead of round-tripping a multi-megabyte upload only to be rejected.
+const MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024;
+const ACCEPTED_EXTS = ['xlsx', 'xls', 'csv'];
+
 export default function FileUpload({ onFileLoaded, isLoaded }) {
   const { isMobile } = useWindowSize();
   const [isDragging, setIsDragging] = useState(false);
@@ -14,8 +19,14 @@ export default function FileUpload({ onFileLoaded, isLoaded }) {
     if (!file) return;
 
     const ext = file.name.split('.').pop().toLowerCase();
-    if (!['xlsx', 'xls', 'csv'].includes(ext)) {
+    if (!ACCEPTED_EXTS.includes(ext)) {
       setError('엑셀 파일(.xlsx, .xls) 또는 CSV 파일만 업로드 가능합니다.');
+      return;
+    }
+
+    if (file.size > MAX_FILE_SIZE_BYTES) {
+      const mb = (file.size / 1024 / 1024).toFixed(1);
+      setError(`파일이 너무 큽니다 (${mb}MB). 50MB 이하로 업로드해주세요.`);
       return;
     }
 
@@ -98,7 +109,13 @@ export default function FileUpload({ onFileLoaded, isLoaded }) {
           type="file"
           accept=".xlsx,.xls,.csv"
           style={{ display: 'none' }}
-          onChange={(e) => handleFile(e.target.files[0])}
+          onChange={(e) => {
+            const file = e.target.files[0];
+            // Reset value so re-selecting the same file fires onChange again
+            // — without this, browsers suppress the event for identical files.
+            e.target.value = '';
+            handleFile(file);
+          }}
         />
 
         <AnimatePresence mode="wait">
