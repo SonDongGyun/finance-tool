@@ -19,8 +19,11 @@ export default defineConfig({
     },
   },
   test: {
-    // utils tests are pure JS — node env is plenty and faster than jsdom.
-    environment: 'node',
+    // happy-dom is lighter than jsdom and runs noticeably faster — the
+    // surface we test (badges, inputs, file pickers) doesn't need jsdom's
+    // edge-case fidelity.
+    environment: 'happy-dom',
     include: ['src/**/*.test.{js,jsx}'],
+    setupFiles: ['./src/test/setup.js'],
   },
 })
