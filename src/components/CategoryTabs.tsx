@@ -97,7 +97,14 @@ export default function CategoryTabs({ categories, selected, onSelect }: Categor
         style={{
           display: 'flex', gap: '6px', overflowX: 'auto',
           scrollbarWidth: 'none', msOverflowStyle: 'none',
-          padding: '2px 0',
+          paddingTop: '2px',
+          paddingBottom: '2px',
+          // Reserve space for the absolute-positioned nav buttons (28+4+28=60),
+          // plus a 4px breathing gap. Without this the chevrons sit on top of
+          // the first/last tabs and obscure them.
+          paddingLeft: canScrollLeft ? '64px' : 0,
+          paddingRight: canScrollRight ? '64px' : 0,
+          transition: 'padding 0.15s ease',
         }}
       >
         <button
