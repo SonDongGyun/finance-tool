@@ -1,5 +1,5 @@
 import { useRef, useEffect, useState, type CSSProperties } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 
 const tabStyle = (active: boolean): CSSProperties => ({
   padding: '7px 16px',
@@ -13,6 +13,26 @@ const tabStyle = (active: boolean): CSSProperties => ({
   cursor: 'pointer',
   flexShrink: 0,
 });
+
+// Shared visual treatment for the four nav arrows. left/right offsets are
+// applied per-button so single (28px) and double (28+4+28=60px) chevrons can
+// stack cleanly on each side.
+const navBtnStyle: CSSProperties = {
+  position: 'absolute',
+  top: '50%',
+  transform: 'translateY(-50%)',
+  zIndex: 2,
+  width: '28px',
+  height: '28px',
+  borderRadius: '50%',
+  background: 'rgba(15,23,42,0.9)',
+  border: '1px solid rgba(100,116,139,0.3)',
+  color: '#cbd5e1',
+  cursor: 'pointer',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+};
 
 interface CategoryTabsProps {
   categories: string[];
@@ -44,20 +64,33 @@ export default function CategoryTabs({ categories, selected, onSelect }: Categor
     if (el) el.scrollBy({ left: dir * 200, behavior: 'smooth' });
   };
 
+  const scrollToEdge = (edge: 'start' | 'end') => {
+    const el = scrollRef.current;
+    if (!el) return;
+    el.scrollTo({ left: edge === 'start' ? 0 : el.scrollWidth, behavior: 'smooth' });
+  };
+
   return (
     <div style={{ position: 'relative', marginBottom: '16px' }}>
       {canScrollLeft && (
-        <button
-          onClick={() => scroll(-1)}
-          style={{
-            position: 'absolute', left: 0, top: '50%', transform: 'translateY(-50%)',
-            zIndex: 2, width: '28px', height: '28px', borderRadius: '50%',
-            background: 'rgba(15,23,42,0.9)', border: '1px solid rgba(100,116,139,0.3)',
-            color: '#cbd5e1', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}
-        >
-          <ChevronLeft style={{ width: '16px', height: '16px' }} />
-        </button>
+        <>
+          <button
+            type="button"
+            onClick={() => scrollToEdge('start')}
+            aria-label="맨 앞으로"
+            style={{ ...navBtnStyle, left: 0 }}
+          >
+            <ChevronsLeft style={{ width: '16px', height: '16px' }} />
+          </button>
+          <button
+            type="button"
+            onClick={() => scroll(-1)}
+            aria-label="이전"
+            style={{ ...navBtnStyle, left: '32px' }}
+          >
+            <ChevronLeft style={{ width: '16px', height: '16px' }} />
+          </button>
+        </>
       )}
       <div
         ref={scrollRef}
@@ -84,17 +117,24 @@ export default function CategoryTabs({ categories, selected, onSelect }: Categor
         ))}
       </div>
       {canScrollRight && (
-        <button
-          onClick={() => scroll(1)}
-          style={{
-            position: 'absolute', right: 0, top: '50%', transform: 'translateY(-50%)',
-            zIndex: 2, width: '28px', height: '28px', borderRadius: '50%',
-            background: 'rgba(15,23,42,0.9)', border: '1px solid rgba(100,116,139,0.3)',
-            color: '#cbd5e1', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}
-        >
-          <ChevronRight style={{ width: '16px', height: '16px' }} />
-        </button>
+        <>
+          <button
+            type="button"
+            onClick={() => scroll(1)}
+            aria-label="다음"
+            style={{ ...navBtnStyle, right: '32px' }}
+          >
+            <ChevronRight style={{ width: '16px', height: '16px' }} />
+          </button>
+          <button
+            type="button"
+            onClick={() => scrollToEdge('end')}
+            aria-label="맨 끝으로"
+            style={{ ...navBtnStyle, right: 0 }}
+          >
+            <ChevronsRight style={{ width: '16px', height: '16px' }} />
+          </button>
+        </>
       )}
     </div>
   );
