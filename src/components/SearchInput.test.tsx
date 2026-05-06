@@ -3,7 +3,15 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import SearchInput from './SearchInput';
 
-function setup(overrides = {}) {
+interface SetupOverrides {
+  value?: string;
+  term?: string;
+  placeholder?: string;
+  ariaLabel?: string;
+  width?: number;
+}
+
+function setup(overrides: SetupOverrides = {}) {
   const props = {
     value: '',
     onChange: vi.fn(),
@@ -63,7 +71,7 @@ describe('SearchInput', () => {
 
   it('respects the width prop on the input', () => {
     setup({ width: 220 });
-    const input = screen.getByLabelText('검색 입력');
+    const input = screen.getByLabelText('검색 입력') as HTMLInputElement;
     expect(input.style.width).toBe('220px');
   });
 });

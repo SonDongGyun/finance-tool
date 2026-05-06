@@ -12,22 +12,24 @@ describe('parseDate', () => {
   it('parses Excel serial numbers in the supported range', () => {
     // 25569 = 1970-01-01 (Unix epoch start, classic XLSX serial reference).
     const epoch = parseDate('25569');
-    expect(epoch.getUTCFullYear()).toBe(1970);
-    expect(epoch.getUTCMonth()).toBe(0);
-    expect(epoch.getUTCDate()).toBe(1);
+    expect(epoch).not.toBeNull();
+    expect(epoch!.getUTCFullYear()).toBe(1970);
+    expect(epoch!.getUTCMonth()).toBe(0);
+    expect(epoch!.getUTCDate()).toBe(1);
 
     // 45292 = 2024-01-01 — typical modern serial.
     const recent = parseDate('45292');
-    expect(recent.getUTCFullYear()).toBe(2024);
-    expect(recent.getUTCMonth()).toBe(0);
-    expect(recent.getUTCDate()).toBe(1);
+    expect(recent).not.toBeNull();
+    expect(recent!.getUTCFullYear()).toBe(2024);
+    expect(recent!.getUTCMonth()).toBe(0);
+    expect(recent!.getUTCDate()).toBe(1);
   });
 
   it('accepts 4-digit serials too (regression: previously the regex required exactly 5)', () => {
     // 1000 = 1902-09-26 (well within Excel epoch territory).
     const d = parseDate('1000');
     expect(d).not.toBeNull();
-    expect(d.getUTCFullYear()).toBe(1902);
+    expect(d!.getUTCFullYear()).toBe(1902);
   });
 
   it('rejects 8-digit numbers like 20240101 from being misread as serials', () => {
@@ -44,11 +46,12 @@ describe('parseDate', () => {
   it('parses ISO and slash/dot date strings as UTC midnight', () => {
     for (const input of ['2025-03-15', '2025/03/15', '2025.03.15']) {
       const d = parseDate(input);
-      expect(d.getUTCFullYear()).toBe(2025);
-      expect(d.getUTCMonth()).toBe(2);
-      expect(d.getUTCDate()).toBe(15);
-      expect(d.getUTCHours()).toBe(0);
-      expect(d.getUTCMinutes()).toBe(0);
+      expect(d).not.toBeNull();
+      expect(d!.getUTCFullYear()).toBe(2025);
+      expect(d!.getUTCMonth()).toBe(2);
+      expect(d!.getUTCDate()).toBe(15);
+      expect(d!.getUTCHours()).toBe(0);
+      expect(d!.getUTCMinutes()).toBe(0);
     }
   });
 
@@ -56,7 +59,7 @@ describe('parseDate', () => {
     const input = new Date(2025, 5, 20, 14, 30); // local June 20 2025 14:30
     const d = parseDate(input);
     expect(d).not.toBeNull();
-    expect(d.getUTCHours()).toBe(0);
+    expect(d!.getUTCHours()).toBe(0);
   });
 
   it('returns null for unparseable strings', () => {

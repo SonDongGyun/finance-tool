@@ -39,8 +39,9 @@ describe('formatMonthLabel', () => {
 
   it('returns empty string for empty input', () => {
     expect(formatMonthLabel('')).toBe('');
-    expect(formatMonthLabel(null)).toBe('');
-    expect(formatMonthLabel(undefined)).toBe('');
+    // Defensive: nullish inputs are coerced to '' by the implementation.
+    expect(formatMonthLabel(null as unknown as string)).toBe('');
+    expect(formatMonthLabel(undefined as unknown as string)).toBe('');
   });
 });
 
@@ -101,8 +102,10 @@ describe('monthRangesOverlap', () => {
   });
 
   it('returns false for non-array inputs', () => {
-    expect(monthRangesOverlap(null, ['2025-01'])).toBe(false);
-    expect(monthRangesOverlap(['2025-01'], undefined)).toBe(false);
+    // Defensive guard tested directly — runtime accepts these even though the
+    // signature requires arrays.
+    expect(monthRangesOverlap(null as unknown as string[], ['2025-01'])).toBe(false);
+    expect(monthRangesOverlap(['2025-01'], undefined as unknown as string[])).toBe(false);
   });
 
   it('returns false when either side is empty', () => {

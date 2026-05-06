@@ -1,10 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import StatusBadge from './StatusBadge';
+import type { Status } from '../types';
 
 describe('StatusBadge', () => {
   it('renders the Korean label for each known status', () => {
-    const cases = [
+    const cases: Array<[Status, string]> = [
       ['new', '신규'],
       ['removed', '제거'],
       ['increased', '증가'],
@@ -19,7 +20,9 @@ describe('StatusBadge', () => {
   });
 
   it('renders nothing for an unknown status', () => {
-    const { container } = render(<StatusBadge status="bogus" />);
+    // Casts past the union to confirm the runtime guard returns null for
+    // invalid values — exercises the defensive `if (!c || !m) return null`.
+    const { container } = render(<StatusBadge status={'bogus' as Status} />);
     expect(container).toBeEmptyDOMElement();
   });
 
@@ -34,6 +37,6 @@ describe('StatusBadge', () => {
     expect(container.querySelector('svg')).toBeNull();
     // Compact uses inline-block (no flex, no border) — sanity check via style.
     const span = container.querySelector('span');
-    expect(span.style.display).toBe('inline-block');
+    expect(span?.style.display).toBe('inline-block');
   });
 });

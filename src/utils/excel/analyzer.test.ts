@@ -5,8 +5,9 @@ import {
   analyzeMonthlyChanges,
   analyzeSheetComparison,
 } from './analyzer';
+import type { AnalyzeMonthlyConfig, ColumnConfig, ParsedRow } from '../../types';
 
-const baseConfig = {
+const baseConfig: AnalyzeMonthlyConfig = {
   dateColumn: 'date',
   amountColumns: { amount: 'amount' },
   categoryColumn: 'category',
@@ -14,7 +15,15 @@ const baseConfig = {
   vendorColumn: 'vendor',
 };
 
-function makeRow({ date, amount, category, vendor = '', desc = '' }) {
+interface MakeRowArgs {
+  date: unknown;
+  amount: number;
+  category: string;
+  vendor?: string;
+  desc?: string;
+}
+
+function makeRow({ date, amount, category, vendor = '', desc = '' }: MakeRowArgs): ParsedRow {
   return { date, amount, category, vendor, desc };
 }
 
@@ -138,8 +147,9 @@ describe('analyzeMonthlyChanges - pctChange edge cases', () => {
       months2: ['2025-04'],
     });
     const cat = result.categoryComparison.find(c => c.category === 'NEW');
-    expect(cat.status).toBe('new');
-    expect(cat.pctChange).toBe(100);
+    expect(cat).toBeDefined();
+    expect(cat!.status).toBe('new');
+    expect(cat!.pctChange).toBe(100);
   });
 
   it('handles negative-prev categories with absolute denominator', () => {
@@ -154,8 +164,9 @@ describe('analyzeMonthlyChanges - pctChange edge cases', () => {
       months2: ['2025-04'],
     });
     const cat = result.categoryComparison.find(c => c.category === '환불');
-    expect(cat.pctChange).toBeCloseTo(50, 1);
-    expect(cat.status).toBe('increased'); // diff = 500 > 0
+    expect(cat).toBeDefined();
+    expect(cat!.pctChange).toBeCloseTo(50, 1);
+    expect(cat!.status).toBe('increased'); // diff = 500 > 0
   });
 
   it('returns 0% when both totals are zero', () => {
@@ -179,7 +190,7 @@ describe('analyzeSheetComparison', () => {
       makeRow({ date: '2025-04-01', amount: 800, category: '교통비' }),
     ];
     const result = analyzeSheetComparison(
-      sheet1, sheet2, baseConfig,
+      sheet1, sheet2, baseConfig as ColumnConfig,
       ['2024-03', '2024-04'],
       ['2025-03', '2025-04'],
     );
@@ -195,7 +206,7 @@ describe('analyzeSheetComparison', () => {
       makeRow({ date: 'invalid', amount: 1, category: 'A' }),
     ];
     const result = analyzeSheetComparison(
-      sheet1, sheet2, baseConfig,
+      sheet1, sheet2, baseConfig as ColumnConfig,
       ['2024-01'], ['2025-01'],
     );
     expect(result.skippedRowCount).toBe(3);
@@ -206,7 +217,7 @@ describe('월계/누계 자동 처리', () => {
   // Mirrors the user's actual data shape: some categories have individual
   // transactions plus 월계/누계 summary rows; other categories only have
   // 월계/누계 (no per-transaction lines).
-  function buildLedger() {
+  function buildLedger(): ParsedRow[] {
     return [
       // 건물관리비: 개별 거래 + 월계 + 누계 (월계는 무시되어야 함)
       { _sheet: 'S', date: '2026-03-31', amount: 1000, category: '건물관리비', vendor: 'A' },
@@ -249,10 +260,11 @@ describe('월계/누계 자동 처리', () => {
       months2: ['2026-03'],
     });
     const cat = result.categoryComparison.find(c => c.category === '무형상각');
+    expect(cat).toBeDefined();
     // Without the dedup, this would double to 200/600 because we'd add the
     // 월계 row on top of the individual transactions.
-    expect(cat.prevAmount).toBe(100);
-    expect(cat.currAmount).toBe(300);
+    expect(cat!.prevAmount).toBe(100);
+    expect(cat!.currAmount).toBe(300);
   });
 
   it('synthesizes entries from 월계 rows for categories with no individual transactions', () => {
@@ -264,8 +276,8 @@ describe('월계/누계 자동 처리', () => {
     const cat = result.categoryComparison.find(c => c.category === '복리후생비');
     expect(cat).toBeDefined();
     // 1번째 월계(5000) → 2026-01, 2번째(6000) → 2026-02, 3번째(7000) → 2026-03
-    expect(cat.prevAmount).toBe(5000);
-    expect(cat.currAmount).toBe(7000);
+    expect(cat!.prevAmount).toBe(5000);
+    expect(cat!.currAmount).toBe(7000);
     expect(result.monthlyOnlyCategories).toContain('복리후생비');
     expect(result.monthlyOnlyCategories).not.toContain('무형상각');
     expect(result.monthlyOnlyCategories).not.toContain('건물관리비');
@@ -273,7 +285,7 @@ describe('월계/누계 자동 처리', () => {
 
   it('drops 월계-only categories when the sheet has no real-date entries to anchor a month range', () => {
     // Without any real dates, we cannot place 월계 rows on a timeline → drop.
-    const rows = [
+    const rows: ParsedRow[] = [
       { _sheet: 'S', date: '월계', amount: 1000, category: '복리후생비' },
       { _sheet: 'S', date: '월계', amount: 2000, category: '복리후생비' },
     ];
@@ -289,29 +301,30 @@ describe('월계/누계 자동 처리', () => {
   });
 
   it('analyzeSheetComparison aggregates monthlyOnlyCategories across both sheets', () => {
-    const sheet1 = [
+    const sheet1: ParsedRow[] = [
       { _sheet: 'A', date: '2024-01-01', amount: 10, category: '교통비' },
       { _sheet: 'A', date: '월계',        amount: 100, category: '복리후생비' },
     ];
-    const sheet2 = [
+    const sheet2: ParsedRow[] = [
       { _sheet: 'B', date: '2025-01-01', amount: 20, category: '교통비' },
       { _sheet: 'B', date: '월계',        amount: 200, category: '복리후생비' },
     ];
     const result = analyzeSheetComparison(
-      sheet1, sheet2, baseConfig,
+      sheet1, sheet2, baseConfig as ColumnConfig,
       ['2024-01'], ['2025-01'],
     );
     expect(result.monthlyOnlyCategories).toEqual(['복리후생비']);
     // 복리후생비는 양쪽에서 월계로만 등장하므로 100 vs 200으로 비교됨.
     const cat = result.categoryComparison.find(c => c.category === '복리후생비');
-    expect(cat.prevAmount).toBe(100);
-    expect(cat.currAmount).toBe(200);
+    expect(cat).toBeDefined();
+    expect(cat!.prevAmount).toBe(100);
+    expect(cat!.currAmount).toBe(200);
   });
 });
 
 describe('debit/credit amount handling', () => {
   it('treats debit minus credit as the row amount', () => {
-    const rows = [
+    const rows: ParsedRow[] = [
       { date: '2025-03-01', debit: 1000, credit: 0, category: 'A' },
       { date: '2025-04-01', debit: 0, credit: 300, category: 'A' },
     ];

@@ -4,14 +4,16 @@ import FileUpload from './FileUpload';
 
 // Object.defineProperty avoids actually allocating 51 MB of buffer just to
 // produce a File with `.size` set.
-function makeFile(name, sizeBytes) {
+function makeFile(name: string, sizeBytes: number): File {
   const file = new File([''], name, { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
   Object.defineProperty(file, 'size', { value: sizeBytes });
   return file;
 }
 
-function getFileInput(container) {
-  return container.querySelector('input[type="file"]');
+function getFileInput(container: HTMLElement): HTMLInputElement {
+  const input = container.querySelector('input[type="file"]') as HTMLInputElement | null;
+  if (!input) throw new Error('file input not found');
+  return input;
 }
 
 describe('FileUpload', () => {

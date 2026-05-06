@@ -4,6 +4,7 @@ import {
   initialState,
   PASSWORD_INITIAL,
   EMPTY_RANGE,
+  type AppState,
 } from './appReducer';
 import {
   STEP_LANDING,
@@ -14,23 +15,35 @@ import {
   MODE_MONTHLY,
   MODE_SHEET,
 } from '../constants/steps';
+import type { ParsedFile, AnalysisResult, ColumnConfig } from '../types';
 
 // Helper: build a mid-flight state so we can verify resets are exhaustive.
-function midFlowState(overrides = {}) {
+function midFlowState(overrides: Partial<AppState> = {}): AppState {
+  const fileData: ParsedFile = {
+    sheetName: '', sheetNames: [], headers: ['a'],
+    rows: [{ a: 1 }], rowsBySheet: {}, totalRows: 1,
+  };
+  const columnConfig: ColumnConfig = {
+    dateColumn: 'a',
+    amountColumns: { amount: 'a' },
+    categoryColumn: null,
+    descriptionColumn: null,
+    vendorColumn: null,
+  };
   return {
     ...initialState,
     step: STEP_RESULT,
     mode: MODE_SHEET,
-    fileData: { rows: [{ a: 1 }], headers: ['a'] },
-    columnConfig: { dateColumn: 'a' },
+    fileData,
+    columnConfig,
     months: ['2025-01', '2025-02'],
     monthlyMode: 'range',
     range1: { start: '2025-01', end: '2025-01' },
     range2: { start: '2025-02', end: '2025-02' },
-    sheetInfos: [{ name: 'S1', months: ['2025-01'] }],
+    sheetInfos: [{ name: 'S1', year: 2025, label: '2025년', months: ['2025-01'], rowCount: 1 }],
     side1: { sheetName: 'S1', checkedMonths: new Set(['2025-01']) },
     side2: { sheetName: 'S2', checkedMonths: new Set(['2025-02']) },
-    analysisResult: { totalDiff: 100 },
+    analysisResult: { totalDiff: 100 } as AnalysisResult,
     ...overrides,
   };
 }
@@ -71,7 +84,10 @@ describe('FILE_PARSED', () => {
       step: STEP_UPLOAD,
       password: { open: true, file: new File([''], 'a.xlsx'), error: 'wrong', loading: true },
     });
-    const parsed = { rows: [{ x: 1 }], headers: ['x'] };
+    const parsed: ParsedFile = {
+      sheetName: '', sheetNames: [], headers: ['x'],
+      rows: [{ x: 1 }], rowsBySheet: {}, totalRows: 1,
+    };
     const next = appReducer(state, { type: 'FILE_PARSED', parsed });
     expect(next.step).toBe(STEP_MAPPING);
     expect(next.fileData).toBe(parsed);
@@ -121,8 +137,14 @@ describe('PASSWORD lifecycle', () => {
 
 describe('COLUMN_CONFIRMED', () => {
   it('moves to select step and stores the column config', () => {
-    const state = { ...initialState, step: STEP_MAPPING };
-    const config = { dateColumn: 'date', amountColumns: { amount: 'amt' } };
+    const state: AppState = { ...initialState, step: STEP_MAPPING };
+    const config: ColumnConfig = {
+      dateColumn: 'date',
+      amountColumns: { amount: 'amt' },
+      categoryColumn: null,
+      descriptionColumn: null,
+      vendorColumn: null,
+    };
     const next = appReducer(state, {
       type: 'COLUMN_CONFIRMED',
       config,
@@ -136,9 +158,16 @@ describe('COLUMN_CONFIRMED', () => {
 
   it('keeps existing range/side when action omits them (?? state.range1 fallback)', () => {
     const state = midFlowState({ step: STEP_MAPPING });
+    const config: ColumnConfig = {
+      dateColumn: 'date',
+      amountColumns: { amount: 'a' },
+      categoryColumn: null,
+      descriptionColumn: null,
+      vendorColumn: null,
+    };
     const next = appReducer(state, {
       type: 'COLUMN_CONFIRMED',
-      config: { dateColumn: 'date' },
+      config,
       months: ['2025-03'],
       sheetInfos: [],
     });
@@ -148,12 +177,19 @@ describe('COLUMN_CONFIRMED', () => {
   });
 
   it('overrides range/side when action provides them', () => {
-    const state = { ...initialState, step: STEP_MAPPING };
+    const state: AppState = { ...initialState, step: STEP_MAPPING };
     const newRange1 = { start: '2025-01', end: '2025-01' };
     const newRange2 = { start: '2025-02', end: '2025-02' };
+    const config: ColumnConfig = {
+      dateColumn: 'date',
+      amountColumns: { amount: 'a' },
+      categoryColumn: null,
+      descriptionColumn: null,
+      vendorColumn: null,
+    };
     const next = appReducer(state, {
       type: 'COLUMN_CONFIRMED',
-      config: { dateColumn: 'date' },
+      config,
       months: ['2025-01', '2025-02'],
       sheetInfos: [],
       range1: newRange1,
@@ -166,8 +202,8 @@ describe('COLUMN_CONFIRMED', () => {
 
 describe('ANALYSIS_DONE / BACK_TO_SELECT', () => {
   it('ANALYSIS_DONE jumps to result with the computed payload', () => {
-    const state = { ...initialState, step: STEP_SELECT };
-    const result = { totalDiff: 1000, categoryComparison: [] };
+    const state: AppState = { ...initialState, step: STEP_SELECT };
+    const result = { totalDiff: 1000, categoryComparison: [] } as unknown as AnalysisResult;
     const next = appReducer(state, { type: 'ANALYSIS_DONE', result });
     expect(next.step).toBe(STEP_RESULT);
     expect(next.analysisResult).toBe(result);
@@ -219,7 +255,9 @@ describe('SET_* setters are pure field assignments', () => {
 
 describe('unknown action', () => {
   it('returns state unchanged for unknown action types', () => {
-    const next = appReducer(initialState, { type: 'NOT_A_REAL_ACTION' });
+    // Cast to satisfy the discriminated-union signature while still
+    // exercising the default branch at runtime.
+    const next = appReducer(initialState, { type: 'NOT_A_REAL_ACTION' } as never);
     expect(next).toBe(initialState);
   });
 });
