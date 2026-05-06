@@ -14,25 +14,23 @@ const tabStyle = (active: boolean): CSSProperties => ({
   flexShrink: 0,
 });
 
-// Shared visual treatment for the four nav arrows. left/right offsets are
-// applied per-button so single (28px) and double (28+4+28=60px) chevrons can
-// stack cleanly on each side.
-const navBtnStyle: CSSProperties = {
-  position: 'absolute',
-  top: '50%',
-  transform: 'translateY(-50%)',
-  zIndex: 2,
+// disabled state shows the button greyed-out so users still see the affordance
+// (and the layout doesn't shift) when they've scrolled to the edge.
+const navBtnStyle = (disabled: boolean): CSSProperties => ({
   width: '28px',
   height: '28px',
   borderRadius: '50%',
   background: 'rgba(15,23,42,0.9)',
   border: '1px solid rgba(100,116,139,0.3)',
   color: '#cbd5e1',
-  cursor: 'pointer',
+  cursor: disabled ? 'not-allowed' : 'pointer',
+  opacity: disabled ? 0.3 : 1,
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
-};
+  flexShrink: 0,
+  padding: 0,
+});
 
 interface CategoryTabsProps {
   categories: string[];
@@ -44,10 +42,16 @@ export default function CategoryTabs({ categories, selected, onSelect }: Categor
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
+  // True iff the tab strip is wider than its viewport, i.e. nav buttons are useful.
+  // Tracked separately from canScrollLeft/Right so the buttons stay mounted as
+  // the user scrolls (just toggling disabled state) — no layout shift.
+  const [needsScroll, setNeedsScroll] = useState(false);
 
   const checkScroll = () => {
     const el = scrollRef.current;
     if (!el) return;
+    const overflows = el.scrollWidth > el.clientWidth + 1;
+    setNeedsScroll(overflows);
     setCanScrollLeft(el.scrollLeft > 0);
     setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 1);
   };
@@ -71,40 +75,40 @@ export default function CategoryTabs({ categories, selected, onSelect }: Categor
   };
 
   return (
-    <div style={{ position: 'relative', marginBottom: '16px' }}>
-      {canScrollLeft && (
-        <>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+      {needsScroll && (
+        <div style={{ display: 'flex', gap: '4px', flexShrink: 0 }}>
           <button
             type="button"
             onClick={() => scrollToEdge('start')}
+            disabled={!canScrollLeft}
             aria-label="맨 앞으로"
-            style={{ ...navBtnStyle, left: 0 }}
+            style={navBtnStyle(!canScrollLeft)}
           >
             <ChevronsLeft style={{ width: '16px', height: '16px' }} />
           </button>
           <button
             type="button"
             onClick={() => scroll(-1)}
+            disabled={!canScrollLeft}
             aria-label="이전"
-            style={{ ...navBtnStyle, left: '32px' }}
+            style={navBtnStyle(!canScrollLeft)}
           >
             <ChevronLeft style={{ width: '16px', height: '16px' }} />
           </button>
-        </>
+        </div>
       )}
       <div
         ref={scrollRef}
         style={{
-          display: 'flex', gap: '6px', overflowX: 'auto',
-          scrollbarWidth: 'none', msOverflowStyle: 'none',
-          paddingTop: '2px',
-          paddingBottom: '2px',
-          // Reserve space for the absolute-positioned nav buttons (28+4+28=60),
-          // plus a 4px breathing gap. Without this the chevrons sit on top of
-          // the first/last tabs and obscure them.
-          paddingLeft: canScrollLeft ? '64px' : 0,
-          paddingRight: canScrollRight ? '64px' : 0,
-          transition: 'padding 0.15s ease',
+          flex: 1,
+          minWidth: 0,
+          display: 'flex',
+          gap: '6px',
+          overflowX: 'auto',
+          scrollbarWidth: 'none',
+          msOverflowStyle: 'none',
+          padding: '2px 0',
         }}
       >
         <button
@@ -123,25 +127,27 @@ export default function CategoryTabs({ categories, selected, onSelect }: Categor
           </button>
         ))}
       </div>
-      {canScrollRight && (
-        <>
+      {needsScroll && (
+        <div style={{ display: 'flex', gap: '4px', flexShrink: 0 }}>
           <button
             type="button"
             onClick={() => scroll(1)}
+            disabled={!canScrollRight}
             aria-label="다음"
-            style={{ ...navBtnStyle, right: '32px' }}
+            style={navBtnStyle(!canScrollRight)}
           >
             <ChevronRight style={{ width: '16px', height: '16px' }} />
           </button>
           <button
             type="button"
             onClick={() => scrollToEdge('end')}
+            disabled={!canScrollRight}
             aria-label="맨 끝으로"
-            style={{ ...navBtnStyle, right: 0 }}
+            style={navBtnStyle(!canScrollRight)}
           >
             <ChevronsRight style={{ width: '16px', height: '16px' }} />
           </button>
-        </>
+        </div>
       )}
     </div>
   );
