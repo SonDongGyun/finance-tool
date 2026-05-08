@@ -1,10 +1,11 @@
-import { useState, useMemo, useRef, type CSSProperties, type RefObject } from 'react';
+import { useState, useMemo, useRef, type RefObject } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MessageSquareText, PlusCircle, MinusCircle, AlertTriangle, ChevronDown, SlidersHorizontal } from 'lucide-react';
 import { formatMoney, formatMonthLabel } from '../utils/formatters';
 import { smoothScrollTo } from '../utils/scroll';
 import { COLORS, STATUS_COLORS } from '../constants/colors';
 import { cardStyle } from '../styles/common';
+import { listBtnStyle as makeListBtnStyle } from '../styles/table';
 import { UNCATEGORIZED } from '../constants/defaults';
 import CategoryTabs from './CategoryTabs';
 import type { AnalysisResult, CategoryComparison } from '../types';
@@ -24,13 +25,8 @@ const THRESHOLD_OPTIONS = [
   { label: '500만원 이상', value: 5000000 },
 ];
 
-const listBtnStyle: CSSProperties = {
-  padding: '8px 16px',
-  borderRadius: '8px', fontSize: '12px', fontWeight: 600,
-  background: 'rgba(100,116,139,0.1)', color: '#94a3b8',
-  border: '1px solid rgba(100,116,139,0.15)',
-  cursor: 'pointer', flex: 1,
-};
+// AnalysisSummary uses the small variant (denser padding) inside section cards.
+const listBtnStyle = makeListBtnStyle('sm');
 
 type KeyChangeType = 'new' | 'removed';
 type LineType = 'increase' | 'decrease' | 'new' | 'removed' | 'neutral';

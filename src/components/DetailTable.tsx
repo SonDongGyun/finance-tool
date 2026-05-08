@@ -1,4 +1,4 @@
-import React, { useState, useMemo, type CSSProperties } from 'react';
+import React, { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { ChevronDown, ChevronUp, Filter } from 'lucide-react';
 import { formatMoney, formatMonthLabel } from '../utils/formatters';
@@ -7,6 +7,7 @@ import SearchInput from './SearchInput';
 import StatusFilterBar, { type StatusFilterKey, type StatusFilterCounts } from './StatusFilterBar';
 import ExpandedDetailRow from './ExpandedDetailRow';
 import { cardStyle } from '../styles/common';
+import { thStyle, tdStyle } from '../styles/table';
 import type { AnalysisResult } from '../types';
 
 type DetailSortKey = 'category' | 'prev' | 'curr' | 'diff';
@@ -54,18 +55,6 @@ export default function DetailTable({ result }: DetailTableProps) {
   const handleSort = (col: DetailSortKey) => {
     if (sortBy === col) setSortDir(d => d === 'desc' ? 'asc' : 'desc');
     else { setSortBy(col); setSortDir('desc'); }
-  };
-
-  const thStyle = (clickable: boolean): CSSProperties => ({
-    textAlign: 'left', padding: '14px 16px',
-    fontSize: '12px', fontWeight: 700, color: '#94a3b8',
-    textTransform: 'uppercase', letterSpacing: '0.05em',
-    cursor: clickable ? 'pointer' : 'default',
-    whiteSpace: 'nowrap', userSelect: 'none',
-  });
-
-  const tdStyle: CSSProperties = {
-    padding: '14px 16px', fontSize: '14px',
   };
 
   return (

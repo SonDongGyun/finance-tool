@@ -29,22 +29,8 @@ export const labelStyle: CSSProperties = {
   fontWeight: 500,
 };
 
-export const thStyle: CSSProperties = {
-  textAlign: 'left',
-  padding: '14px 16px',
-  fontSize: '12px',
-  fontWeight: 700,
-  color: COLORS.sub,
-  textTransform: 'uppercase',
-  letterSpacing: '0.05em',
-  whiteSpace: 'nowrap',
-  userSelect: 'none',
-};
-
-export const tdStyle: CSSProperties = {
-  padding: '14px 16px',
-  fontSize: '14px',
-};
+// thStyle / tdStyle / listBtnStyle were unused here — moved to styles/table.ts
+// as functions (size/align variants). Import from there directly.
 
 export const sectionTitleStyle: CSSProperties = {
   display: 'flex',
@@ -82,21 +68,4 @@ export const btnSecondary: CSSProperties = {
   background: 'rgba(15,23,42,0.4)',
   color: COLORS.sub,
   cursor: 'pointer',
-};
-
-// Pagination / list-action button (used by AnalysisSummary, VendorTable).
-export const listBtnStyle: CSSProperties = {
-  padding: '10px 16px',
-  borderRadius: '8px',
-  fontSize: '13px',
-  fontWeight: 600,
-  flex: 1,
-  background: 'rgba(100,116,139,0.1)',
-  color: COLORS.sub,
-  border: '1px solid rgba(100,116,139,0.15)',
-  cursor: 'pointer',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  gap: '6px',
 };

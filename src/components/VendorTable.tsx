@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef, type CSSProperties } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Building2, ChevronDown, ChevronUp } from 'lucide-react';
 import { formatMoney, formatMonthLabel } from '../utils/formatters';
@@ -9,6 +9,7 @@ import SearchInput from './SearchInput';
 import StatusFilterBar, { type StatusFilterKey, type StatusFilterCounts } from './StatusFilterBar';
 import ExpandedDetailRow from './ExpandedDetailRow';
 import { cardStyle } from '../styles/common';
+import { thStyle, tdStyle, listBtnStyle } from '../styles/table';
 import type { AnalysisResult } from '../types';
 
 const DEFAULT_COUNT = 15;
@@ -94,27 +95,7 @@ export default function VendorTable({ result }: VendorTableProps) {
     setVisibleCount(DEFAULT_COUNT);
   };
 
-  const thStyle = (clickable: boolean): CSSProperties => ({
-    padding: '14px 16px',
-    fontSize: '12px', fontWeight: 700, color: '#94a3b8',
-    textTransform: 'uppercase', letterSpacing: '0.05em',
-    whiteSpace: 'nowrap',
-    cursor: clickable ? 'pointer' : 'default',
-    userSelect: 'none',
-  });
-
-  const tdStyle: CSSProperties = {
-    padding: '14px 16px', fontSize: '14px',
-  };
-
-  const btnStyle: CSSProperties = {
-    padding: '10px 16px', borderRadius: '8px',
-    fontSize: '13px', fontWeight: 600, flex: 1,
-    background: 'rgba(100,116,139,0.1)', color: '#94a3b8',
-    border: '1px solid rgba(100,116,139,0.15)',
-    cursor: 'pointer', display: 'flex', alignItems: 'center',
-    justifyContent: 'center', gap: '6px',
-  };
+  const btnStyle = listBtnStyle();
 
   return (
     <motion.div
@@ -175,7 +156,7 @@ export default function VendorTable({ result }: VendorTableProps) {
                   <th
                     key={col.key}
                     onClick={() => handleSort(col.key)}
-                    style={{ ...thStyle(true), textAlign: col.align }}
+                    style={thStyle(true, col.align)}
                   >
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                       {col.label}
@@ -187,8 +168,8 @@ export default function VendorTable({ result }: VendorTableProps) {
                     </span>
                   </th>
                 ))}
-                <th style={{ ...thStyle(false), textAlign: 'center', width: '80px' }}>상태</th>
-                <th style={{ ...thStyle(false), textAlign: 'center', width: '40px' }}></th>
+                <th style={{ ...thStyle(false, 'center'), width: '80px' }}>상태</th>
+                <th style={{ ...thStyle(false, 'center'), width: '40px' }}></th>
               </tr>
             </thead>
             <tbody>
