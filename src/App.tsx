@@ -5,6 +5,7 @@ import Header from './components/Header';
 import LandingPage from './components/LandingPage';
 import FileUpload from './components/FileUpload';
 import ColumnMapper from './components/ColumnMapper';
+import DataPreview from './components/DataPreview';
 import MonthSelector from './components/MonthSelector';
 import SheetComparator from './components/SheetComparator';
 import SummaryCards from './components/SummaryCards';
@@ -271,45 +272,7 @@ function App() {
                   onConfirm={handleColumnConfirm}
                 />
 
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.4 }}
-                  style={{
-                    position: 'relative', zIndex: 10,
-                    maxWidth: '720px', marginLeft: 'auto', marginRight: 'auto',
-                    marginTop: '24px',
-                  }}
-                >
-                  <div className="glass-light" style={{ borderRadius: '16px', padding: '20px' }}>
-                    <p style={{ fontSize: '14px', color: '#94a3b8', marginBottom: '12px' }}>
-                      데이터 미리보기 (총 {fileData.totalRows}행
-                      {fileData.sheetNames?.length > 1 ? ` · 시트 ${fileData.sheetNames.length}개` : ''})
-                    </p>
-                    <div style={{ overflowX: 'auto', fontSize: '12px' }}>
-                      <table style={{ width: '100%' }}>
-                        <thead>
-                          <tr style={{ borderBottom: '1px solid rgba(51,65,85,0.3)' }}>
-                            {fileData.headers.slice(0, 8).map(h => (
-                              <th key={h} style={{ padding: '8px 12px', textAlign: 'left', color: '#94a3b8', fontWeight: 500, whiteSpace: 'nowrap' }}>{h}</th>
-                            ))}
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {fileData.rows.slice(0, 5).map((row, i) => (
-                            <tr key={`preview-${i}-${String(row[fileData.headers[0]] ?? '')}`} style={{ borderBottom: '1px solid rgba(15,23,42,0.2)' }}>
-                              {fileData.headers.slice(0, 8).map(h => (
-                                <td key={h} style={{ padding: '8px 12px', color: '#cbd5e1', whiteSpace: 'nowrap', maxWidth: '150px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                  {String(row[h] || '')}
-                                </td>
-                              ))}
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                </motion.div>
+                <DataPreview file={fileData} />
               </motion.div>
             )}
 
