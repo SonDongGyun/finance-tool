@@ -19,7 +19,6 @@ const BLUE = '3B82F6';
 const RED = 'EF4444';
 const GREEN = '10B981';
 const ORANGE = 'F97316';
-// const CYAN = '06B6D4';
 const YELLOW = 'F59E0B';
 const FONT = 'Malgun Gothic';
 
@@ -65,46 +64,66 @@ function buildCategorySummary(result: AnalysisResult): CategorySummaryItem[] {
   });
 }
 
-export async function exportPptx(result: AnalysisResult): Promise<void> {
-  const pptx = new PptxGenJS();
-  pptx.layout = 'LAYOUT_WIDE';
-  pptx.subject = '월별 비용 증감 분석';
+// Shared per-export render context — passed to each slide renderer so
+// individual functions don't re-derive labels.
+interface PptxContext {
+  pptx: PptxGenJS;
+  result: AnalysisResult;
+  m1: string;
+  m2: string;
+  today: string;
+  diffSign: string;
+}
 
-  const m1 = formatMonthLabel(result.month1.label);
-  const m2 = formatMonthLabel(result.month2.label);
-  const today = new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' });
-  const diffSign = result.totalDiff >= 0 ? '+' : '';
-  const allSlides: Slide[] = [];
+interface InsightLine {
+  color: string;
+  tag: string;
+  text: string;
+}
 
-  // ═══════════ 슬라이드 1: 표지 ═══════════
-  const s1 = pptx.addSlide();
-  allSlides.push(s1);
-  s1.background = { color: BG };
-  s1.addShape(pptx.ShapeType.rect, { x: 0, y: 0, w: 13.33, h: 0.08, fill: { color: BLUE } });
+const SLIDE_WIDTH = 13.33;
+const TOP_BAR_HEIGHT = 0.08;
+const LINES_PER_INSIGHT_SLIDE = 13;
+const ROWS_PER_TABLE_SLIDE = 14;
 
-  s1.addText('월별 비용 증감 분석 보고서', {
+// Common chrome (background + top accent bar) shared by every body slide.
+function applyBaseSlideChrome(ctx: PptxContext, slide: Slide): void {
+  slide.background = { color: BG };
+  slide.addShape(ctx.pptx.ShapeType.rect, {
+    x: 0, y: 0, w: SLIDE_WIDTH, h: TOP_BAR_HEIGHT, fill: { color: BLUE },
+  });
+}
+
+function renderCoverSlide(ctx: PptxContext): Slide {
+  const { pptx, m1, m2, today } = ctx;
+  const slide = pptx.addSlide();
+  applyBaseSlideChrome(ctx, slide);
+
+  slide.addText('월별 비용 증감 분석 보고서', {
     x: 0.8, y: 1.5, w: 11.5, h: 0.9,
     fontSize: 36, fontFace: FONT, color: TEXT, bold: true,
   });
-  s1.addText(`${m1}  vs  ${m2}`, {
+  slide.addText(`${m1}  vs  ${m2}`, {
     x: 0.8, y: 2.5, w: 11.5, h: 0.6,
     fontSize: 24, fontFace: FONT, color: BLUE, bold: true,
   });
 
-  s1.addShape(pptx.ShapeType.rect, { x: 0.8, y: 3.4, w: 3.5, h: 0.06, fill: { color: BLUE } });
+  slide.addShape(pptx.ShapeType.rect, { x: 0.8, y: 3.4, w: 3.5, h: 0.06, fill: { color: BLUE } });
 
-  s1.addText(today, {
+  slide.addText(today, {
     x: 0.8, y: 3.9, w: 6, h: 0.35,
     fontSize: 11, fontFace: FONT, color: DIM,
   });
 
-  // ═══════════ 슬라이드 2: 요약 개요 ═══════════
-  const s2 = pptx.addSlide();
-  allSlides.push(s2);
-  s2.background = { color: BG };
-  s2.addShape(pptx.ShapeType.rect, { x: 0, y: 0, w: 13.33, h: 0.08, fill: { color: BLUE } });
+  return slide;
+}
 
-  s2.addText('요약 개요', {
+function renderSummarySlide(ctx: PptxContext): Slide {
+  const { pptx, result, m1, m2, diffSign } = ctx;
+  const slide = pptx.addSlide();
+  applyBaseSlideChrome(ctx, slide);
+
+  slide.addText('요약 개요', {
     x: 0.8, y: 0.3, w: 8, h: 0.6,
     fontSize: 24, fontFace: FONT, color: TEXT, bold: true,
   });
@@ -117,14 +136,14 @@ export async function exportPptx(result: AnalysisResult): Promise<void> {
 
   cards.forEach((c, i) => {
     const x = 0.8 + i * 3.8;
-    s2.addShape(pptx.ShapeType.roundRect, {
+    slide.addShape(pptx.ShapeType.roundRect, {
       x, y: 1.2, w: 3.4, h: 1.8,
       fill: { color: CARD_BG }, line: { color: BORDER, width: 1 }, rectRadius: 0.12,
     });
-    s2.addShape(pptx.ShapeType.rect, { x: x + 0.1, y: 1.2, w: 3.2, h: 0.06, fill: { color: c.accent } });
-    s2.addText(c.label, { x, y: 1.4, w: 3.4, h: 0.35, fontSize: 11, color: SUB, align: 'center', fontFace: FONT });
-    s2.addText(c.value + '원', { x, y: 1.75, w: 3.4, h: 0.55, fontSize: 20, color: TEXT, bold: true, align: 'center', fontFace: FONT });
-    s2.addText(c.sub, { x, y: 2.35, w: 3.4, h: 0.35, fontSize: 13, color: c.accent, align: 'center', bold: true, fontFace: FONT });
+    slide.addShape(pptx.ShapeType.rect, { x: x + 0.1, y: 1.2, w: 3.2, h: 0.06, fill: { color: c.accent } });
+    slide.addText(c.label, { x, y: 1.4, w: 3.4, h: 0.35, fontSize: 11, color: SUB, align: 'center', fontFace: FONT });
+    slide.addText(c.value + '원', { x, y: 1.75, w: 3.4, h: 0.55, fontSize: 20, color: TEXT, bold: true, align: 'center', fontFace: FONT });
+    slide.addText(c.sub, { x, y: 2.35, w: 3.4, h: 0.35, fontSize: 13, color: c.accent, align: 'center', bold: true, fontFace: FONT });
   });
 
   const changes = [
@@ -136,20 +155,20 @@ export async function exportPptx(result: AnalysisResult): Promise<void> {
 
   changes.forEach((c, i) => {
     const x = 0.8 + i * 2.9;
-    s2.addShape(pptx.ShapeType.roundRect, {
+    slide.addShape(pptx.ShapeType.roundRect, {
       x, y: 3.4, w: 2.6, h: 1.3,
       fill: { color: CARD_BG }, line: { color: BORDER, width: 1 }, rectRadius: 0.1,
     });
-    s2.addText(c.label, { x, y: 3.5, w: 2.6, h: 0.35, fontSize: 10, color: c.color, align: 'center', fontFace: FONT });
-    s2.addText(String(c.count), { x, y: 3.9, w: 2.6, h: 0.65, fontSize: 30, color: TEXT, bold: true, align: 'center', fontFace: FONT });
+    slide.addText(c.label, { x, y: 3.5, w: 2.6, h: 0.35, fontSize: 10, color: c.color, align: 'center', fontFace: FONT });
+    slide.addText(String(c.count), { x, y: 3.9, w: 2.6, h: 0.65, fontSize: 30, color: TEXT, bold: true, align: 'center', fontFace: FONT });
   });
 
   // 핵심 인사이트 박스
-  s2.addShape(pptx.ShapeType.roundRect, {
+  slide.addShape(pptx.ShapeType.roundRect, {
     x: 0.8, y: 5.1, w: 11.5, h: 1.4,
     fill: { color: '1A1A2E' }, line: { color: YELLOW, width: 1 }, rectRadius: 0.1,
   });
-  s2.addText('핵심 인사이트', {
+  slide.addText('핵심 인사이트', {
     x: 1.2, y: 5.2, w: 3, h: 0.35,
     fontSize: 11, color: YELLOW, bold: true, fontFace: FONT,
   });
@@ -167,17 +186,16 @@ export async function exportPptx(result: AnalysisResult): Promise<void> {
     insights.push(`소멸 항목: ${result.removedItems.map(i => i.category).join(', ')}`);
   }
 
-  s2.addText(insights.join('\n'), {
+  slide.addText(insights.join('\n'), {
     x: 1.2, y: 5.55, w: 10.8, h: 0.85,
     fontSize: 10, color: 'CBD5E1', fontFace: FONT, lineSpacing: 18,
   });
 
-  // ═══════════ 분석 상세 (카테고리 총평만) ═══════════
-  interface InsightLine {
-    color: string;
-    tag: string;
-    text: string;
-  }
+  return slide;
+}
+
+function buildInsightLines(ctx: PptxContext): InsightLine[] {
+  const { result, m1, m2, diffSign } = ctx;
   const lines: InsightLine[] = [];
 
   if (result.totalDiff !== 0) {
@@ -198,19 +216,25 @@ export async function exportPptx(result: AnalysisResult): Promise<void> {
     lines.push({ color: GREEN, tag: '감소', text: `${item.category}: ${formatMoney(item.prevAmount)}원 → ${formatMoney(item.currAmount)}원 (-${formatMoney(Math.abs(item.diff))}원, ${item.pctChange}%)` });
   });
 
-  const maxLines = 13;
-  for (let i = 0; i < lines.length; i += maxLines) {
+  return lines;
+}
+
+function renderInsightLineSlides(ctx: PptxContext): Slide[] {
+  const { pptx } = ctx;
+  const lines = buildInsightLines(ctx);
+  const slides: Slide[] = [];
+
+  for (let i = 0; i < lines.length; i += LINES_PER_INSIGHT_SLIDE) {
     const slide = pptx.addSlide();
-    allSlides.push(slide);
-    slide.background = { color: BG };
-    slide.addShape(pptx.ShapeType.rect, { x: 0, y: 0, w: 13.33, h: 0.08, fill: { color: BLUE } });
+    slides.push(slide);
+    applyBaseSlideChrome(ctx, slide);
 
     slide.addText(i === 0 ? '분석 상세' : '분석 상세 (계속)', {
       x: 0.8, y: 0.3, w: 8, h: 0.6,
       fontSize: 24, fontFace: FONT, color: TEXT, bold: true,
     });
 
-    const page = lines.slice(i, i + maxLines);
+    const page = lines.slice(i, i + LINES_PER_INSIGHT_SLIDE);
     page.forEach((line, idx) => {
       const yPos = 1.2 + idx * 0.42;
 
@@ -229,8 +253,13 @@ export async function exportPptx(result: AnalysisResult): Promise<void> {
     });
   }
 
-  // ═══════════ 계정과목별 총평 테이블 ═══════════
-  const catSummary = buildCategorySummary(result);
+  return slides;
+}
+
+function renderCategoryTableSlides(ctx: PptxContext, catSummary: CategorySummaryItem[]): Slide[] {
+  const { pptx, m1, m2 } = ctx;
+  const slides: Slide[] = [];
+
   const catRows = catSummary.map(c => [
     { text: c.category, options: { fontSize: 9, color: TEXT, fontFace: FONT } },
     { text: `${formatMoney(c.prevAmount)}원`, options: { fontSize: 9, color: 'CBD5E1', align: 'right' as const, fontFace: FONT } },
@@ -241,12 +270,10 @@ export async function exportPptx(result: AnalysisResult): Promise<void> {
     { text: c.vendorCount > 0 ? `${c.vendorCount}건 (신규${c.newVendors} 제거${c.removedVendors})` : '-', options: { fontSize: 8, color: SUB, align: 'center' as const, fontFace: FONT } },
   ]);
 
-  const rowsPerPage = 14;
-  for (let i = 0; i < catRows.length; i += rowsPerPage) {
+  for (let i = 0; i < catRows.length; i += ROWS_PER_TABLE_SLIDE) {
     const slide = pptx.addSlide();
-    allSlides.push(slide);
-    slide.background = { color: BG };
-    slide.addShape(pptx.ShapeType.rect, { x: 0, y: 0, w: 13.33, h: 0.08, fill: { color: BLUE } });
+    slides.push(slide);
+    applyBaseSlideChrome(ctx, slide);
 
     slide.addText(i === 0 ? '계정과목별 총평' : '계정과목별 총평 (계속)', {
       x: 0.8, y: 0.3, w: 8, h: 0.5,
@@ -263,7 +290,7 @@ export async function exportPptx(result: AnalysisResult): Promise<void> {
       { text: '거래처 변동', options: { fontSize: 9, bold: true, color: 'FFFFFF', fill: { color: BLUE }, align: 'center' as const, fontFace: FONT } },
     ];
 
-    const chunk = catRows.slice(i, i + rowsPerPage);
+    const chunk = catRows.slice(i, i + ROWS_PER_TABLE_SLIDE);
     const tableRows = [headerRow, ...chunk.map((row, idx) => row.map(cell => ({
       ...cell,
       options: { ...cell.options, fill: { color: idx % 2 === 0 ? CARD_BG : '172033' } },
@@ -277,24 +304,50 @@ export async function exportPptx(result: AnalysisResult): Promise<void> {
     });
   }
 
-  // ═══════════ 마지막 슬라이드 ═══════════
-  const sEnd = pptx.addSlide();
-  allSlides.push(sEnd);
-  sEnd.background = { color: BG };
-  sEnd.addShape(pptx.ShapeType.rect, { x: 0, y: 0, w: 13.33, h: 0.08, fill: { color: BLUE } });
+  return slides;
+}
 
-  sEnd.addText('감사합니다', {
-    x: 0, y: 2.5, w: 13.33, h: 1,
+function renderClosingSlide(ctx: PptxContext): Slide {
+  const { pptx, today } = ctx;
+  const slide = pptx.addSlide();
+  applyBaseSlideChrome(ctx, slide);
+
+  slide.addText('감사합니다', {
+    x: 0, y: 2.5, w: SLIDE_WIDTH, h: 1,
     fontSize: 36, fontFace: FONT, color: TEXT, bold: true, align: 'center',
   });
-  sEnd.addText('재무 분석 툴', {
-    x: 0, y: 3.5, w: 13.33, h: 0.5,
+  slide.addText('재무 분석 툴', {
+    x: 0, y: 3.5, w: SLIDE_WIDTH, h: 0.5,
     fontSize: 14, fontFace: FONT, color: SUB, align: 'center',
   });
-  sEnd.addText(today, {
-    x: 0, y: 4.1, w: 13.33, h: 0.4,
+  slide.addText(today, {
+    x: 0, y: 4.1, w: SLIDE_WIDTH, h: 0.4,
     fontSize: 11, fontFace: FONT, color: DIM, align: 'center',
   });
+
+  return slide;
+}
+
+export async function exportPptx(result: AnalysisResult): Promise<void> {
+  const pptx = new PptxGenJS();
+  pptx.layout = 'LAYOUT_WIDE';
+  pptx.subject = '월별 비용 증감 분석';
+
+  const ctx: PptxContext = {
+    pptx,
+    result,
+    m1: formatMonthLabel(result.month1.label),
+    m2: formatMonthLabel(result.month2.label),
+    today: new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' }),
+    diffSign: result.totalDiff >= 0 ? '+' : '',
+  };
+
+  const allSlides: Slide[] = [];
+  allSlides.push(renderCoverSlide(ctx));
+  allSlides.push(renderSummarySlide(ctx));
+  allSlides.push(...renderInsightLineSlides(ctx));
+  allSlides.push(...renderCategoryTableSlides(ctx, buildCategorySummary(result)));
+  allSlides.push(renderClosingSlide(ctx));
 
   // 페이지 번호
   allSlides.forEach((slide, i) => {

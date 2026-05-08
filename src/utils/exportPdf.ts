@@ -109,19 +109,23 @@ function buildCategorySummary(result: AnalysisResult): CategorySummaryItem[] {
   });
 }
 
-export async function exportPdf(result: AnalysisResult): Promise<void> {
-  const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-  await loadKoreanFont(doc);
-  setFont(doc);
+// Shared per-export render context — passed to each page renderer so the
+// individual functions don't need to re-derive page dimensions or label
+// formatting.
+interface PdfContext {
+  doc: jsPDF;
+  result: AnalysisResult;
+  m1: string;
+  m2: string;
+  today: string;
+  pw: number;
+  ph: number;
+  diffSign: string;
+}
 
-  const m1 = formatMonthLabel(result.month1.label);
-  const m2 = formatMonthLabel(result.month2.label);
-  const pw = doc.internal.pageSize.getWidth();
-  const ph = doc.internal.pageSize.getHeight();
-  const today = new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' });
-  const diffSign = result.totalDiff >= 0 ? '+' : '';
+function renderCoverPage(ctx: PdfContext): void {
+  const { doc, result, m1, m2, today, pw, diffSign } = ctx;
 
-  // ════════════════ PAGE 1: Cover ════════════════
   doc.setFillColor(30, 64, 175);
   doc.rect(0, 0, pw, 55, 'F');
 
@@ -139,7 +143,7 @@ export async function exportPdf(result: AnalysisResult): Promise<void> {
   doc.text(`작성일: ${today}`, pw / 2, 48, { align: 'center' });
 
   // 요약 개요 박스
-  let y = 70;
+  const y = 70;
   doc.setFillColor(245, 247, 250);
   doc.roundedRect(14, y - 4, pw - 28, 50, 3, 3, 'F');
 
@@ -160,10 +164,13 @@ export async function exportPdf(result: AnalysisResult): Promise<void> {
   summaryText.forEach((t, i) => {
     doc.text(t, 20, y + 12 + i * 7);
   });
+}
 
-  // ════════════════ 핵심 인사이트 ════════════════
+function renderInsightsPage(ctx: PdfContext): void {
+  const { doc, result, m1, m2, pw, ph, diffSign } = ctx;
+
   newPage(doc);
-  y = 18;
+  let y = 18;
   y = addSectionTitle(doc, '핵심 인사이트', y, [180, 120, 0]);
 
   const maxTextW = pw - 48;
@@ -225,12 +232,13 @@ export async function exportPdf(result: AnalysisResult): Promise<void> {
     doc.text(wrapped, 21, y);
     y += wrapped.length * lineH + 1;
   });
+}
 
-  // ════════════════ 카테고리별 총평 테이블 ════════════════
-  const catSummary = buildCategorySummary(result);
+function renderCategoryTable(ctx: PdfContext, catSummary: CategorySummaryItem[]): void {
+  const { doc, m1, m2 } = ctx;
 
   newPage(doc);
-  y = 18;
+  let y = 18;
   y = addSectionTitle(doc, '계정과목별 총평', y);
 
   autoTable(doc, {
@@ -276,8 +284,10 @@ export async function exportPdf(result: AnalysisResult): Promise<void> {
     },
     didDrawPage: () => { setFont(doc); },
   });
+}
 
-  // ════════════════ Page numbers ════════════════
+function applyPageFooters(ctx: PdfContext): void {
+  const { doc, m1, m2 } = ctx;
   // jsPDF runtime exposes getNumberOfPages() but it isn't in the published types.
   const totalPages = (doc.internal as unknown as { getNumberOfPages(): number }).getNumberOfPages();
   for (let i = 1; i <= totalPages; i++) {
@@ -285,6 +295,28 @@ export async function exportPdf(result: AnalysisResult): Promise<void> {
     setFont(doc);
     addPageFooter(doc, i, totalPages, m1, m2);
   }
+}
+
+export async function exportPdf(result: AnalysisResult): Promise<void> {
+  const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+  await loadKoreanFont(doc);
+  setFont(doc);
+
+  const ctx: PdfContext = {
+    doc,
+    result,
+    m1: formatMonthLabel(result.month1.label),
+    m2: formatMonthLabel(result.month2.label),
+    today: new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' }),
+    pw: doc.internal.pageSize.getWidth(),
+    ph: doc.internal.pageSize.getHeight(),
+    diffSign: result.totalDiff >= 0 ? '+' : '',
+  };
+
+  renderCoverPage(ctx);
+  renderInsightsPage(ctx);
+  renderCategoryTable(ctx, buildCategorySummary(result));
+  applyPageFooters(ctx);
 
   doc.save(`분석보고서_${result.month1.label}_vs_${result.month2.label}.pdf`);
 }
